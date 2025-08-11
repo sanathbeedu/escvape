@@ -1,0 +1,11 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+opencv-python==4.8.1.78
+numpy==1.24.3
+Pillow==10.0.1
+requests==2.31.0
+pydantic[email]==2.5.0
+python-multipart==0.0.6
+pygetwindow==0.0.9
+psutil==5.9.6
+sqlite3
