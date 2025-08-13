@@ -16,8 +16,15 @@ import time
 class CigaretteDetectionGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Cigarette Detection System")
-        self.root.geometry("800x600")
+        self.root.title("🚭 Cigarette Detection System")
+        self.root.geometry("900x700")
+        self.root.minsize(800, 600)
+        
+        # Center the window
+        self.root.update_idletasks()
+        x = (self.root.winfo_screenwidth() // 2) - (900 // 2)
+        y = (self.root.winfo_screenheight() // 2) - (700 // 2)
+        self.root.geometry(f"900x700+{x}+{y}")
         
         # API configuration
         self.api_base_url = "http://localhost:8000"
@@ -26,41 +33,81 @@ class CigaretteDetectionGUI:
         self.monitoring_active = tk.BooleanVar()
         self.protection_enabled = tk.BooleanVar()
         
+        # Force window to front
+        self.root.lift()
+        self.root.attributes('-topmost', True)
+        self.root.after_idle(self.root.attributes, '-topmost', False)
+        
         self.setup_ui()
         self.check_api_connection()
     
     def setup_ui(self):
         """Setup the user interface"""
+        # Main container frame
+        main_frame = ttk.Frame(self.root)
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Title label
+        title_label = ttk.Label(main_frame, text="🚭 Cigarette Detection System", 
+                               font=("Arial", 18, "bold"))
+        title_label.pack(pady=(0, 10))
+        
         # Create notebook for tabs
-        notebook = ttk.Notebook(self.root)
-        notebook.pack(fill="both", expand=True, padx=10, pady=10)
+        self.notebook = ttk.Notebook(main_frame)
+        self.notebook.pack(fill="both", expand=True, pady=(0, 10))
         
         # Tab 1: Image Detection
-        self.detection_frame = ttk.Frame(notebook)
-        notebook.add(self.detection_frame, text="Image Detection")
+        self.detection_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.detection_frame, text="🔍 Image Detection")
         self.setup_detection_tab()
         
         # Tab 2: Parental Control
-        self.parental_frame = ttk.Frame(notebook)
-        notebook.add(self.parental_frame, text="Parental Control")
+        self.parental_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.parental_frame, text="👨‍👩‍👧‍👦 Parental Control")
         self.setup_parental_tab()
         
         # Tab 3: Monitoring Stats
-        self.stats_frame = ttk.Frame(notebook)
-        notebook.add(self.stats_frame, text="Monitoring Stats")
+        self.stats_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.stats_frame, text="📊 Monitoring Stats")
         self.setup_stats_tab()
         
         # Status bar
         self.status_var = tk.StringVar()
-        self.status_var.set("Ready")
-        status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN)
-        status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.status_var.set("✅ Ready - API Connection: Checking...")
+        self.status_bar = ttk.Label(main_frame, textvariable=self.status_var, 
+                                   relief=tk.SUNKEN, padding=5)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        # Force update
+        self.root.update_idletasks()
+        print("✅ GUI setup completed")
     
     def setup_detection_tab(self):
         """Setup image detection tab"""
+        print("🔍 Setting up detection tab...")
+        
+        # Create scrollable frame
+        canvas = tk.Canvas(self.detection_frame)
+        scrollbar = ttk.Scrollbar(self.detection_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
         # Title
-        title_label = ttk.Label(self.detection_frame, text="Cigarette Detection", font=("Arial", 16, "bold"))
+        title_label = ttk.Label(scrollable_frame, text="🔍 Cigarette Detection", 
+                               font=("Arial", 16, "bold"))
         title_label.pack(pady=10)
+        
+        # Test label to verify content is showing
+        test_label = ttk.Label(scrollable_frame, text="Detection tab loaded successfully!", 
+                              foreground="green")
+        test_label.pack(pady=5)
         
         # File selection
         file_frame = ttk.Frame(self.detection_frame)

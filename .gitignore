@@ -1,0 +1,278 @@
+# Cigarette Detection System - .gitignore
+
+# ========================================
+# Python
+# ========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ========================================
+# AI Models & Large Files
+# ========================================
+# YOLOv4 weights file (245MB) - too large for GitHub
+models/yolov4.weights
+models/*.weights
+*.weights
+
+# Other large model files
+*.h5
+*.pb
+*.onnx
+*.tflite
+*.mlmodel
+
+# ========================================
+# Databases & Data
+# ========================================
+# SQLite databases (contain user data)
+*.db
+*.sqlite
+*.sqlite3
+jobs.db
+monitoring.db
+protection.db
+
+# Data directories
+data/
+datasets/
+images/
+photos/
+uploads/
+temp/
+tmp/
+
+# ========================================
+# Logs & Debug Files
+# ========================================
+*.log
+logs/
+debug.log
+error.log
+app.log
+
+# ========================================
+# IDE & Editor Files
+# ========================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ========================================
+# macOS
+# ========================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# ========================================
+# Windows
+# ========================================
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# ========================================
+# Linux
+# ========================================
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ========================================
+# Node.js (for mobile app)
+# ========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ========================================
+# React Native / Expo
+# ========================================
+.expo/
+.expo-shared/
+web-build/
+dist/
+
+# ========================================
+# Secrets & Configuration
+# ========================================
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+
+# API keys and secrets
+secrets.json
+config.json
+credentials.json
+*.key
+*.pem
+*.p12
+
+# Email configuration
+email_config.py
+smtp_config.py
+
+# ========================================
+# Test Files & Debugging
+# ========================================
+# Test files created during development
+test_*.py
+*_test.py
+debug_*.py
+minimal_test.py
+simple_gui_test.py
+
+# Test images and outputs
+test_images/
+test_outputs/
+sample_images/
+results/
+
+# ========================================
+# Documentation Build
+# ========================================
+docs/_build/
+site/
+
+# ========================================
+# Backup Files
+# ========================================
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*~
+
+# ========================================
+# Temporary Files
+# ========================================
+*.tmp
+*.temp
+.cache/
+cache/
+
+# ========================================
+# System Files
+# ========================================
+*.pid
+*.lock
+.DS_Store?

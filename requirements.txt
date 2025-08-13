@@ -8,4 +8,3 @@ pydantic[email]==2.5.0
 python-multipart==0.0.6
 pygetwindow==0.0.9
 psutil==5.9.6
-sqlite3
