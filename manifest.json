@@ -1,7 +1,7 @@
 {
-  "name": "Cigarette Detection System",
-  "short_name": "CigDetect",
-  "description": "AI-Powered Cigarette Detection with Parental Control",
+  "name": "Self-Monitoring Smoking & Vaping Detection",
+  "short_name": "SelfMonitor",
+  "description": "AI-Powered Self-Monitoring for Smoking & Vaping Detection",
   "start_url": "./web_frontend.html",
   "display": "standalone",
   "background_color": "#667eea",

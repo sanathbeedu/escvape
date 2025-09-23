@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚭 Cigarette Detection System</title>
+    <title>🚭 Smoking & Vaping Detection System</title>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -253,13 +253,91 @@
         .status-offline {
             background: #dc3545;
         }
+        
+        .detection-types {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .detection-type {
+            display: inline-block;
+            margin: 5px 10px 5px 0;
+            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            font-size: 14px;
+        }
+        
+        .object-detections {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .detection-list {
+            margin-top: 10px;
+        }
+        
+        .detection-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .detection-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        
+        .detection-badge {
+            background: #28a745;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            text-transform: capitalize;
+        }
+        
+        .detection-info {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .confidence {
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .reasoning {
+            margin-top: 5px;
+            font-style: italic;
+            color: #6c757d;
+            font-size: 0.85em;
+        }
+        
+        .analysis-stats {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚭 Cigarette Detection System</h1>
-            <p>AI-Powered Image Analysis & Parental Control</p>
+            <h1>🚭 Smoking & Vaping Detection System</h1>
+            <p>AI-Powered Image Analysis & Self-Monitoring</p>
+            <p><em>Detects cigarettes, e-cigarettes, vapes, and smoking behavior</em></p>
             <div id="api-status">
                 <span class="status-indicator status-offline"></span>
                 <span id="status-text">Checking API connection...</span>
@@ -267,20 +345,21 @@
         </div>
         
         <div class="tabs">
-            <button class="tab active" onclick="showTab('detection')">🔍 Image Detection</button>
-            <button class="tab" onclick="showTab('parental')">👨‍👩‍👧‍👦 Parental Control</button>
+            <button class="tab active" onclick="showTab('detection')">🔍 Smoking & Vaping Detection</button>
+            <button class="tab" onclick="showTab('self-monitoring')">🔍 Self-Monitoring</button>
             <button class="tab" onclick="showTab('stats')">📊 Statistics</button>
         </div>
         
         <!-- Image Detection Tab -->
         <div id="detection" class="tab-content active">
-            <h2>🔍 Image Detection</h2>
-            <p>Upload an image to detect cigarettes using AI analysis</p>
+            <h2>🔍 Smoking & Vaping Detection</h2>
+            <p>Upload an image to detect smoking and vaping using AI analysis</p>
             
             <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
                 <div id="upload-content">
-                    <h3>📁 Drop image here or click to browse</h3>
+                    <p>📁 Drop image here or click to browse</p>
                     <p>Supports: JPG, PNG, BMP, TIFF</p>
+                    <p>Detects: Cigarettes, E-cigarettes, Vapes, Smoking behavior</p>
                 </div>
                 <input type="file" id="file-input" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
                 <img id="image-preview" class="image-preview" style="display: none;">
@@ -292,26 +371,22 @@
                        oninput="document.getElementById('confidence-value').textContent = this.value">
             </div>
             
-            <button class="btn btn-success" id="analyze-btn" onclick="analyzeImage()" disabled>
+            <button class="btn btn-success" id="analyze-btn" disabled>
                 🔍 Analyze Image
             </button>
             
-            <div id="detection-results" class="results"></div>
+            <div id="results" class="results"></div>
         </div>
         
-        <!-- Parental Control Tab -->
-        <div id="parental" class="tab-content">
-            <h2>👨‍👩‍👧‍👦 Parental Control</h2>
-            <p>Configure video monitoring and app protection</p>
+        <!-- Self-Monitoring Tab -->
+        <div id="self-monitoring" class="tab-content">
+            <h2>🔍 Self-Monitoring</h2>
+            <p>Configure personal video monitoring and content awareness</p>
+            
             
             <div class="form-group">
-                <label for="parent-email">Parent Email Address</label>
-                <input type="email" id="parent-email" placeholder="parent@example.com">
-            </div>
-            
-            <div class="form-group">
-                <label for="device-id">Device ID</label>
-                <input type="text" id="device-id" value="web_device_001">
+                <label for="device-id">Session ID:</label>
+                <input type="text" id="device-id" value="personal_session_001" placeholder="Enter session ID">
             </div>
             
             <div class="form-group">
@@ -326,26 +401,25 @@
             <div style="margin: 20px 0;">
                 <h3>Monitoring Status: <span id="monitoring-status">Inactive</span></h3>
                 <button class="btn btn-success" id="start-monitoring" onclick="startMonitoring()">
-                    ▶️ Start Monitoring
+                    ▶️ Start Self-Monitoring
                 </button>
                 <button class="btn btn-danger" id="stop-monitoring" onclick="stopMonitoring()" disabled>
-                    ⏹️ Stop Monitoring
+                    ⏹️ Stop Self-Monitoring
                 </button>
             </div>
             
             <div style="margin: 20px 0;">
-                <h3>App Protection</h3>
-                <button class="btn btn-warning" onclick="enableProtection()">🛡️ Enable Protection</button>
-                <button class="btn" onclick="sendTestReport()">📧 Send Test Report</button>
+                <h3>Personal Activity</h3>
+                <button class="btn btn-info" onclick="enableProtection()">📊 View Activity</button>
             </div>
             
-            <div id="parental-results" class="results"></div>
+            <div id="self-monitoring-results" class="results"></div>
         </div>
         
         <!-- Statistics Tab -->
         <div id="stats" class="tab-content">
-            <h2>📊 Monitoring Statistics</h2>
-            <p>Real-time monitoring data and detection statistics</p>
+            <h2>📊 Self-Monitoring Statistics</h2>
+            <p>Personal monitoring data and detection statistics</p>
             
             <button class="btn" onclick="refreshStats()">🔄 Refresh Statistics</button>
             
@@ -373,11 +447,17 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8000';
+        // API Base URL
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        // Global variable for selected file
         let selectedFile = null;
         
         // Check API status on load
         checkAPIStatus();
+        
+        // Add event listener for analyze button
+        document.getElementById('analyze-btn').addEventListener('click', analyzeImage);
         
         function showTab(tabName) {
             // Hide all tabs
@@ -395,7 +475,7 @@
         
         async function checkAPIStatus() {
             try {
-                const response = await fetch(`${API_BASE}/health`);
+                const response = await fetch(`${API_BASE_URL}/health`);
                 if (response.ok) {
                     document.querySelector('.status-indicator').className = 'status-indicator status-online';
                     document.getElementById('status-text').textContent = 'API Connected';
@@ -468,74 +548,143 @@
             if (!selectedFile) return;
             
             const btn = document.getElementById('analyze-btn');
-            const results = document.getElementById('detection-results');
+            const results = document.getElementById('results');
+            const confidence = document.getElementById('confidence').value;
             
             btn.innerHTML = '<span class="loading"></span> Analyzing...';
             btn.disabled = true;
+            results.innerHTML = '<div class="loading">Analyzing image for smoking and vaping content...</div>';
             
             try {
+                
                 const formData = new FormData();
                 formData.append('file', selectedFile);
-                formData.append('confidence_threshold', document.getElementById('confidence').value);
+                formData.append('confidence_threshold', confidence);
                 
-                const response = await fetch(`${API_BASE}/detect/single`, {
+                
+                const response = await fetch(`${API_BASE_URL}/detect/single`, {
                     method: 'POST',
                     body: formData
                 });
                 
+                
+                if (!response.ok) {
+                    let errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorResult = await response.json();
+                        errorMsg = errorResult.detail || errorResult.message || errorMsg;
+                    } catch (e) {
+                        // JSON parsing failed, use HTTP status
+                    }
+                    throw new Error(errorMsg);
+                }
+                
                 const result = await response.json();
                 
-                if (response.ok) {
-                    const detected = result.cigarette_detected;
-                    const confidence = result.max_confidence;
-                    const detections = result.detections || [];
+                let statusIcon = '✅';
+                let statusText = 'No smoking or vaping detected';
+                let statusClass = 'alert-success';
+                
+                if (result.any_detected || result.smoking_detected || result.vaping_detected || result.cigarette_detected) {
+                    statusIcon = '⚠️';
+                    statusClass = 'alert-danger';
                     
-                    results.innerHTML = `
-                        <div class="alert ${detected ? 'alert-danger' : 'alert-success'}">
-                            <h3>${detected ? '🚨 CIGARETTE DETECTED!' : '✅ No Cigarette Detected'}</h3>
-                            ${detected ? `<p>Maximum Confidence: ${(confidence * 100).toFixed(1)}%</p>` : ''}
-                            <p>Total Detections: ${detections.length}</p>
-                            <p>Analysis Time: ${result.analysis_time?.toFixed(2) || 0}s</p>
-                        </div>
-                        ${detections.length > 0 ? `
-                            <h4>Detailed Detections:</h4>
-                            <ul>
-                                ${detections.map(d => `
-                                    <li>${d.class} - ${(d.confidence * 100).toFixed(1)}% confidence
-                                        ${d.is_cigarette_related ? ' <strong>[CIGARETTE-RELATED]</strong>' : ''}
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        ` : ''}
-                    `;
-                } else {
-                    results.innerHTML = `<div class="alert alert-danger">Error: ${result.detail || 'Analysis failed'}</div>`;
+                    const types = result.detection_types || [];
+                    if (types.includes('smoking') && types.includes('vaping')) {
+                        statusText = '🚭💨 Both smoking and vaping detected';
+                    } else if (types.includes('smoking') || result.smoking_detected || result.cigarette_detected) {
+                        statusText = '🚭 Smoking detected';
+                    } else if (types.includes('vaping') || result.vaping_detected) {
+                        statusText = '💨 Vaping detected';
+                    } else if (types.includes('unknown') || result.any_detected) {
+                        statusText = '⚠️ Smoking/vaping activity detected';
+                    }
                 }
+                
+                let detectionDetails = '';
+                if (result.detection_types && result.detection_types.length > 0) {
+                    detectionDetails = `
+                        <div class="detection-types">
+                            <strong>Detection Types:</strong>
+                            ${result.detection_types.map(type => {
+                                const icon = type === 'smoking' ? '🚭' : type === 'vaping' ? '💨' : '⚠️';
+                                return `<span class="detection-type">${icon} ${type.charAt(0).toUpperCase() + type.slice(1)}</span>`;
+                            }).join('')}
+                        </div>
+                    `;
+                }
+                
+                // Add detailed object detection information
+                let objectDetails = '';
+                if (result.detections && result.detections.length > 0) {
+                    objectDetails = `
+                        <div class="object-detections">
+                            <strong>🎯 Detected Objects:</strong>
+                            <div class="detection-list">
+                                ${result.detections.map((detection, index) => {
+                                    const classIcon = detection.class === 'person' ? '👤' : 
+                                                    detection.class === 'cigarette' ? '🚬' : 
+                                                    detection.class === 'vape' ? '💨' : '📦';
+                                    const typeIcon = detection.detection_type === 'smoking' ? '🚭' : 
+                                                   detection.detection_type === 'vaping' ? '💨' : '⚠️';
+                                    
+                                    return `
+                                        <div class="detection-item">
+                                            <div class="detection-header">
+                                                ${classIcon} <strong>${detection.class}</strong> 
+                                                ${typeIcon} <span class="detection-badge">${detection.detection_type}</span>
+                                            </div>
+                                            <div class="detection-info">
+                                                <span class="confidence">Confidence: ${(detection.confidence * 100).toFixed(1)}%</span>
+                                                ${detection.reasoning ? `<div class="reasoning">💡 ${detection.reasoning.join(', ')}</div>` : ''}
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                results.innerHTML = `
+                    <div class="alert ${statusClass}">
+                        <h3>${statusIcon} ${statusText}</h3>
+                        ${detectionDetails}
+                        ${objectDetails}
+                        <div class="analysis-stats">
+                            <p><strong>📊 Analysis Summary:</strong></p>
+                            <p>• Confidence: ${(result.confidence * 100).toFixed(1)}%</p>
+                            <p>• Total Detections: ${result.total_detections || 0}</p>
+                            <p>• Analysis Time: ${result.analysis_time?.toFixed(2) || 0}s</p>
+                            ${result.message ? `<p><em>${result.message}</em></p>` : ''}
+                        </div>
+                    </div>
+                `;
+                
             } catch (error) {
-                results.innerHTML = `<div class="alert alert-danger">Network Error: ${error.message}</div>`;
+                console.error('Error:', error);
+                const errorMsg = error.message || error.toString() || 'Connection failed - API server may not be running';
+                results.innerHTML = `<div class="alert alert-danger">Error: ${errorMsg}</div>`;
+            } finally {
+                btn.innerHTML = '🔍 Analyze Image';
+                btn.disabled = false;
             }
-            
-            btn.innerHTML = '🔍 Analyze Image';
-            btn.disabled = false;
         }
         
         async function startMonitoring() {
-            const email = document.getElementById('parent-email').value;
             const deviceId = document.getElementById('device-id').value;
             const sensitivity = document.getElementById('sensitivity').value;
-            const results = document.getElementById('parental-results');
+            const results = document.getElementById('self-monitoring-results');
             
-            if (!email) {
-                results.innerHTML = '<div class="alert alert-warning">Please enter parent email</div>';
-                return;
-            }
+            console.log('Starting monitoring with:', { deviceId, sensitivity });
             
             try {
-                const response = await fetch(`${API_BASE}/parental-control/start-monitoring`, {
+                console.log('Fetching:', `${API_BASE_URL}/self-monitoring/start-monitoring`);
+                
+                const response = await fetch(`${API_BASE_URL}/self-monitoring/start-monitoring`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        parentEmail: email,
                         deviceId: deviceId,
                         settings: {
                             realTimeAlerts: true,
@@ -546,27 +695,42 @@
                     })
                 });
                 
-                const result = await response.json();
+                console.log('Response status:', response.status, response.statusText);
+                console.log('Response ok:', response.ok);
                 
                 if (response.ok) {
-                    document.getElementById('monitoring-status').textContent = 'Active';
+                    const result = await response.json();
+                    console.log('Success result:', result);
                     document.getElementById('start-monitoring').disabled = true;
                     document.getElementById('stop-monitoring').disabled = false;
-                    results.innerHTML = '<div class="alert alert-success">✅ Monitoring started successfully!</div>';
+                    results.innerHTML = '<div class="alert alert-success">✅ Self-monitoring started</div>';
                 } else {
-                    results.innerHTML = `<div class="alert alert-danger">Error: ${result.detail}</div>`;
+                    console.log('Response not ok, trying to parse error...');
+                    let errorMsg = 'Unknown error';
+                    try {
+                        const result = await response.json();
+                        console.log('Error result:', result);
+                        errorMsg = result.detail || result.message || `HTTP ${response.status}`;
+                    } catch (e) {
+                        console.log('JSON parse failed:', e);
+                        errorMsg = `HTTP ${response.status} - ${response.statusText}`;
+                    }
+                    console.log('Final error message:', errorMsg);
+                    results.innerHTML = `<div class="alert alert-danger">Error: ${errorMsg}</div>`;
                 }
             } catch (error) {
-                results.innerHTML = `<div class="alert alert-danger">Network Error: ${error.message}</div>`;
+                console.error('Network error:', error);
+                const errorMsg = error.message || error.toString() || 'Connection failed';
+                results.innerHTML = `<div class="alert alert-danger">Network Error: ${errorMsg}</div>`;
             }
         }
         
         async function stopMonitoring() {
             const deviceId = document.getElementById('device-id').value;
-            const results = document.getElementById('parental-results');
+            const results = document.getElementById('self-monitoring-results');
             
             try {
-                const response = await fetch(`${API_BASE}/parental-control/stop-monitoring?device_id=${deviceId}`, {
+                const response = await fetch(`${API_BASE_URL}/self-monitoring/stop-monitoring?device_id=${deviceId}`, {
                     method: 'POST'
                 });
                 
@@ -574,80 +738,58 @@
                     document.getElementById('monitoring-status').textContent = 'Inactive';
                     document.getElementById('start-monitoring').disabled = false;
                     document.getElementById('stop-monitoring').disabled = true;
-                    results.innerHTML = '<div class="alert alert-success">✅ Monitoring stopped</div>';
+                    results.innerHTML = '<div class="alert alert-success">✅ Self-monitoring stopped</div>';
                 }
             } catch (error) {
-                results.innerHTML = `<div class="alert alert-danger">Network Error: ${error.message}</div>`;
+                console.error('Network error:', error);
+                const errorMsg = error.message || error.toString() || 'Connection failed';
+                results.innerHTML = `<div class="alert alert-danger">Network Error: ${errorMsg}</div>`;
             }
         }
         
         async function enableProtection() {
-            const email = document.getElementById('parent-email').value;
             const deviceId = document.getElementById('device-id').value;
-            const results = document.getElementById('parental-results');
-            
-            if (!email) {
-                results.innerHTML = '<div class="alert alert-warning">Please enter parent email</div>';
-                return;
-            }
+            const results = document.getElementById('self-monitoring-results');
             
             try {
-                const response = await fetch(`${API_BASE}/protection/enable`, {
+                const response = await fetch(`${API_BASE_URL}/protection/enable`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        parentEmail: email,
                         deviceId: deviceId
                     })
                 });
                 
-                const result = await response.json();
-                
                 if (response.ok) {
-                    results.innerHTML = '<div class="alert alert-success">🛡️ App protection enabled!</div>';
+                    const result = await response.json();
+                    results.innerHTML = '<div class="alert alert-success">✅ Activity view enabled</div>';
                 } else {
-                    results.innerHTML = `<div class="alert alert-danger">Error: ${result.detail}</div>`;
+                    let errorMsg = 'Unknown error';
+                    try {
+                        const result = await response.json();
+                        errorMsg = result.detail || result.message || `HTTP ${response.status}`;
+                    } catch (e) {
+                        errorMsg = `HTTP ${response.status} - ${response.statusText}`;
+                    }
+                    results.innerHTML = `<div class="alert alert-danger">Error: ${errorMsg}</div>`;
                 }
             } catch (error) {
-                results.innerHTML = `<div class="alert alert-danger">Network Error: ${error.message}</div>`;
+                console.error('Network error:', error);
+                const errorMsg = error.message || error.toString() || 'Connection failed';
+                results.innerHTML = `<div class="alert alert-danger">Network Error: ${errorMsg}</div>`;
             }
         }
         
-        async function sendTestReport() {
-            const email = document.getElementById('parent-email').value;
-            const results = document.getElementById('parental-results');
-            
-            if (!email) {
-                results.innerHTML = '<div class="alert alert-warning">Please enter parent email</div>';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_BASE}/parental-control/send-test-report`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ parentEmail: email })
-                });
-                
-                if (response.ok) {
-                    results.innerHTML = '<div class="alert alert-success">📧 Test report sent successfully!</div>';
-                } else {
-                    results.innerHTML = '<div class="alert alert-danger">Failed to send test report</div>';
-                }
-            } catch (error) {
-                results.innerHTML = `<div class="alert alert-danger">Network Error: ${error.message}</div>`;
-            }
-        }
         
         async function refreshStats() {
             const deviceId = document.getElementById('device-id').value;
             const results = document.getElementById('stats-results');
             
             try {
-                const response = await fetch(`${API_BASE}/parental-control/stats?device_id=${deviceId}`);
-                const stats = await response.json();
+                const response = await fetch(`${API_BASE_URL}/self-monitoring/stats?device_id=${deviceId}`);
                 
                 if (response.ok) {
+                    const stats = await response.json();
                     document.getElementById('total-videos').textContent = stats.totalVideosWatched || 0;
                     document.getElementById('smoking-detected').textContent = stats.smokingContentDetected || 0;
                     
@@ -663,10 +805,19 @@
                     
                     results.innerHTML = '<div class="alert alert-success">✅ Statistics updated</div>';
                 } else {
-                    results.innerHTML = '<div class="alert alert-danger">Failed to load statistics</div>';
+                    let errorMsg = 'Failed to load statistics';
+                    try {
+                        const errorResult = await response.json();
+                        errorMsg = errorResult.detail || errorResult.message || `HTTP ${response.status}`;
+                    } catch (e) {
+                        errorMsg = `HTTP ${response.status} - ${response.statusText}`;
+                    }
+                    results.innerHTML = `<div class="alert alert-danger">Error: ${errorMsg}</div>`;
                 }
             } catch (error) {
-                results.innerHTML = `<div class="alert alert-danger">Network Error: ${error.message}</div>`;
+                console.error('Network error:', error);
+                const errorMsg = error.message || error.toString() || 'Connection failed';
+                results.innerHTML = `<div class="alert alert-danger">Network Error: ${errorMsg}</div>`;
             }
         }
         

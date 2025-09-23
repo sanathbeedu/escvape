@@ -276,3 +276,17 @@ cache/
 *.pid
 *.lock
 .DS_Store?
+
+# ========================================
+# Database Files (Generated at Runtime)
+# ========================================
+*.db
+jobs.db
+monitoring.db
+protection.db
+
+# ========================================
+# Test Files
+# ========================================
+test_*.html
+simple_frontend.html

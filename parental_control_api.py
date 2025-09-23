@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Parental Control API Extension
-Handles video monitoring and reporting for cigarette detection
+Self-Monitoring API Extension
+Handles personal video monitoring and reporting for smoking/vaping detection
 """
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks
@@ -20,23 +20,13 @@ import numpy as np
 import threading
 import time
 import os
-import psutil
 from PIL import ImageGrab
+from main import SmokingVapingDetector
 
-# Optional window management - may not work on all Mac configurations
-try:
-    import pygetwindow as gw
-    WINDOW_MONITORING_AVAILABLE = True
-except ImportError:
-    print("⚠️  Window monitoring not available - pygetwindow/Quartz not installed")
-    print("   Video monitoring will use simplified detection methods")
-    gw = None
-    WINDOW_MONITORING_AVAILABLE = False
+# Safari-only video monitoring - no additional dependencies needed
 
-# Import our detection logic
-from main import CigaretteDetector
 
-router = APIRouter(prefix="/parental-control", tags=["parental-control"])
+router = APIRouter(prefix="/self-monitoring", tags=["self-monitoring"])
 
 # Database setup for monitoring data
 def init_monitoring_db():
@@ -47,7 +37,7 @@ def init_monitoring_db():
         CREATE TABLE IF NOT EXISTS monitoring_sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             device_id TEXT NOT NULL,
-            parent_email TEXT NOT NULL,
+            user_email TEXT,
             start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             end_time TIMESTAMP,
             settings TEXT,
@@ -96,7 +86,6 @@ class MonitoringSettings(BaseModel):
     monitoredApps: List[str] = ["youtube", "tiktok", "instagram", "netflix"]
 
 class StartMonitoringRequest(BaseModel):
-    parentEmail: EmailStr
     settings: MonitoringSettings
     deviceId: str
 
@@ -116,152 +105,258 @@ class MonitoringStats(BaseModel):
 active_monitoring_sessions = {}
 detector_instance = None
 
-class VideoMonitor:
+class SelfVideoMonitor:
     def __init__(self, session_id: int, settings: MonitoringSettings):
         self.session_id = session_id
         self.settings = settings
         self.is_running = False
-        self.detector = CigaretteDetector()
+        self.detector = SmokingVapingDetector()
         self.last_detection_time = 0
         self.detection_cooldown = 30  # seconds between detections for same content
         
     def start_monitoring(self):
-        """Start video content monitoring"""
+        """Start personal video content monitoring"""
         self.is_running = True
         threading.Thread(target=self._monitor_loop, daemon=True).start()
     
     def stop_monitoring(self):
-        """Stop video content monitoring"""
+        """Stop personal video content monitoring"""
         self.is_running = False
     
     def _monitor_loop(self):
-        """Main monitoring loop"""
+        """Main self-monitoring loop"""
+        print("🔄 Starting self-monitoring loop...")
         while self.is_running:
             try:
                 # Get active video windows
                 video_windows = self._get_video_windows()
+                print(f"📹 Found {len(video_windows)} video windows to monitor")
                 
                 for window in video_windows:
                     if self._should_monitor_app(window['app']):
+                        print(f"🎯 Monitoring {window['app']}: {window['title']}")
                         screenshot = self._capture_window(window)
                         if screenshot is not None:
+                            print(f"📸 Screenshot captured, analyzing for smoking/vaping...")
                             self._analyze_screenshot(screenshot, window)
+                        else:
+                            print("❌ Failed to capture screenshot")
                 
                 time.sleep(5)  # Check every 5 seconds
                 
             except Exception as e:
-                print(f"Monitoring error: {e}")
+                print(f"⚠️ Error in monitoring loop: {e}")
                 time.sleep(10)  # Wait longer on error
     
     def _get_video_windows(self):
-        """Get list of active video player windows"""
+        """Get active video windows for self-monitoring"""
         video_windows = []
         
-        if not WINDOW_MONITORING_AVAILABLE:
-            # Fallback: simulate video windows for testing
-            print("🔍 Using simplified video detection (no window monitoring)")
-            return [{
-                'app': 'youtube',
-                'title': 'Simulated YouTube Video',
-                'window': None
-            }]
-        
         try:
-            # Get all windows using pygetwindow
-            windows = gw.getAllWindows()
-            
-            video_apps = {
-                'youtube': ['YouTube', 'Chrome', 'Firefox', 'Safari', 'Edge'],
-                'netflix': ['Netflix', 'Chrome', 'Firefox', 'Safari', 'Edge'],
-                'tiktok': ['TikTok'],
-                'instagram': ['Instagram'],
-                'vlc': ['VLC'],
-                'quicktime': ['QuickTime']
-            }
-            
-            for window in windows:
-                if window.isActive and window.visible:
-                    for app_type, app_names in video_apps.items():
-                        if any(app_name.lower() in window.title.lower() for app_name in app_names):
-                            video_windows.append({
-                                'app': app_type,
-                                'title': window.title,
-                                'window': window
-                            })
-                            break
-                            
+            # Check if Safari is running with video content
+            print("🔍 Checking for Safari windows...")
+            safari_bounds = self._get_safari_window_bounds()
+            if safari_bounds:
+                print(f"✅ Safari window found: {safari_bounds}")
+                video_windows.append({
+                    'app': 'youtube',
+                    'title': 'Safari - YouTube',
+                    'window': None  # Not needed for Safari capture
+                })
+            else:
+                print("❌ No Safari window detected")
+                
         except Exception as e:
-            print(f"Error getting video windows: {e}")
+            print(f"⚠️ Error getting video windows: {e}")
         
         return video_windows
     
     def _should_monitor_app(self, app_name):
-        """Check if app should be monitored based on settings"""
-        return app_name in self.settings.monitoredApps
+        """Check if app should be self-monitored (Safari YouTube only)"""
+        return app_name == 'youtube'
     
     def _capture_window(self, window_info):
-        """Capture screenshot of video window"""
+        """Capture Safari video window"""
         try:
-            window = window_info['window']
+            print("📷 Attempting to capture Safari window...")
+            safari_bounds = self._get_safari_window_bounds()
             
-            if not WINDOW_MONITORING_AVAILABLE or window is None:
-                # Fallback: capture full screen for simplified monitoring
-                print("📸 Using full screen capture (simplified mode)")
-                screenshot = ImageGrab.grab()
+            if safari_bounds:
+                left, top, width, height = safari_bounds
+                print(f"🖼️ Capturing Safari at bounds: {safari_bounds}")
+                
+                # Capture Safari window
+                browser_screenshot = ImageGrab.grab(bbox=(left, top, left + width, top + height))
+                print(f"✅ Safari screenshot captured: {browser_screenshot.size}")
+                
+                # Focus on YouTube video player area
+                video_left = int(width * 0.05)
+                video_top = int(height * 0.12)
+                video_width = int(width * 0.75)
+                video_height = int(height * 0.65)
+                
+                screenshot = browser_screenshot.crop((
+                    video_left,
+                    video_top,
+                    video_left + video_width,
+                    video_top + video_height
+                ))
+                print(f"🎬 Video area cropped to: {screenshot.size}")
+                
                 # Convert to OpenCV format
                 screenshot_cv = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
+                print("✅ Screenshot converted to OpenCV format")
                 return screenshot_cv
-            
-            # Get window bounds
-            left, top, width, height = window.left, window.top, window.width, window.height
-            
-            # Capture screenshot
-            screenshot = ImageGrab.grab(bbox=(left, top, left + width, top + height))
-            
-            # Convert to OpenCV format
-            screenshot_cv = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
-            
-            return screenshot_cv
+            else:
+                print("❌ Safari bounds not available")
+                return None
             
         except Exception as e:
-            print(f"Error capturing window: {e}")
+            print(f"⚠️ Error capturing window: {e}")
+            return None
+    
+    def _get_safari_window_bounds(self):
+        """Get Safari window bounds for video capture"""
+        try:
+            import subprocess
+            
+            safari_script = '''
+            tell application "Safari"
+                if it is running then
+                    activate
+                    delay 0.5
+                    tell front window
+                        set windowBounds to bounds
+                        return windowBounds
+                    end tell
+                end if
+            end tell
+            '''
+            
+            result = subprocess.run(['osascript', '-e', safari_script], 
+                                  capture_output=True, text=True, timeout=5)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                bounds_str = result.stdout.strip()
+                bounds = [int(x.strip()) for x in bounds_str.split(',')]
+                
+                if len(bounds) == 4:
+                    left, top, right, bottom = bounds
+                    width = right - left
+                    height = bottom - top
+                    
+                    if width > 100 and height > 100:
+                        return (left, top, width, height)
+            
+            return None
+            
+        except Exception as e:
+            pass  # Silent error handling
             return None
     
     def _analyze_screenshot(self, screenshot, window_info):
-        """Analyze screenshot for smoking content"""
+        """Analyze screenshot for personal smoking/vaping detection"""
         try:
             current_time = time.time()
             
             # Avoid too frequent detections
             if current_time - self.last_detection_time < self.detection_cooldown:
+                print("⏳ Skipping analysis - within cooldown period")
                 return
             
-            # Save screenshot temporarily
-            temp_path = f"temp_screenshot_{self.session_id}_{int(current_time)}.jpg"
+            # Create temporary file for analysis
+            import os
+            temp_path = os.path.abspath(f"temp_screenshot_{self.session_id}_{int(current_time)}.jpg")
             cv2.imwrite(temp_path, screenshot)
+            print(f"💾 Temporary screenshot saved: {temp_path}")
             
-            # Analyze with our detector
+            # Analyze with AI
+            print("🤖 Running AI analysis for smoking/vaping detection...")
             result, error = self.detector.analyze_image(temp_path)
             
-            if not error and result['cigarette_detected']:
-                self._handle_detection(result, window_info, temp_path)
-                self.last_detection_time = current_time
-            else:
-                # Clean up temp file if no detection
-                os.remove(temp_path)
+            if error:
+                print(f"❌ AI analysis failed: {error}")
+                # Remove temp file if analysis failed
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
+                return
+            
+            if result is None:
+                print("❌ AI analysis returned no result")
+                # Remove temp file if no result
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
+                return
+            
+            print(f"📊 AI analysis complete: smoking={result.get('smoking_detected', False)}, vaping={result.get('vaping_detected', False)}")
                 
+            # Only keep screenshot if smoking/vaping detected
+            if result.get('smoking_detected') or result.get('vaping_detected'):
+                detection_type = "smoking" if result.get('smoking_detected') else "vaping"
+                print(f"🚨 {detection_type.upper()} DETECTED! Saving screenshot: {temp_path}")
+                
+                # Handle both smoking and vaping if both detected
+                if result.get('smoking_detected') and result.get('vaping_detected'):
+                    detection_type = "smoking & vaping"
+                    print("🚨 BOTH SMOKING & VAPING DETECTED!")
+                
+                self._send_self_alert(detection_type, result, temp_path)
+                # Keep the file for evidence
+            else:
+                print("✅ No smoking or vaping detected - removing temp file")
+                # Remove temp file if no detection
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass  # File might already be deleted
+            
+            self.last_detection_time = current_time
+            
         except Exception as e:
-            print(f"Error analyzing screenshot: {e}")
+            # Clean up temp file on error
+            try:
+                if 'temp_path' in locals():
+                    os.remove(temp_path)
+            except OSError:
+                pass
+            pass  # Silent error handling
+    
+    def _send_self_alert(self, detection_type, detection_result, screenshot_path):
+        """Send self-monitoring alert"""
+        try:
+            detection_types = detection_result.get('detection_types', [])
+            
+            if 'smoking' in detection_types and 'vaping' in detection_types:
+                alert_type = "🚭💨 Smoking & Vaping"
+            elif 'smoking' in detection_types:
+                alert_type = "🚭 Smoking"
+            elif 'vaping' in detection_types:
+                alert_type = "💨 Vaping"
+            else:
+                alert_type = "⚠️ Smoking/Vaping"
+            
+            print(f"🚨 SELF-MONITORING ALERT: {alert_type} detected!")
+            print(f"Screenshot saved: {screenshot_path}")
+            print(f"Detection confidence: {detection_result.get('max_confidence', 0):.2f}")
+            
+            # Save detection to database
+            self._handle_detection(detection_result, {'app': 'Safari', 'title': 'Video Content'}, screenshot_path)
+            
+        except Exception as e:
+            pass  # Silent error handling
     
     def _handle_detection(self, detection_result, window_info, screenshot_path):
-        """Handle positive smoking detection"""
+        """Handle positive smoking/vaping detection for self-monitoring"""
         try:
             # Save detection to database
             conn = sqlite3.connect('monitoring.db')
             cursor = conn.cursor()
             
-            max_confidence = max([d['confidence'] for d in detection_result['detections'] 
-                                if d['is_cigarette_related']], default=0)
+            max_confidence = detection_result.get('max_confidence', 0)
             
             cursor.execute('''
                 INSERT INTO video_detections 
@@ -279,53 +374,51 @@ class VideoMonitor:
             conn.commit()
             conn.close()
             
-            # Send real-time alert if enabled
-            if self.settings.realTimeAlerts:
-                self._send_realtime_alert(detection_result, window_info)
+            # Alert already sent in _analyze_screenshot, no need to duplicate
                 
         except Exception as e:
-            print(f"Error handling detection: {e}")
+            pass  # Silent error handling
     
-    def _send_realtime_alert(self, detection_result, window_info):
-        """Send immediate alert to parent"""
-        # This would integrate with email/SMS service
-        print(f"ALERT: Smoking content detected in {window_info['app']} - {window_info['title']}")
+    def _send_self_notification(self, detection_result, window_info):
+        """Send immediate self-monitoring notification"""
+        # This would integrate with personal notification service
+        # Self-notification would be sent in production
 
 @router.post("/start-monitoring")
 async def start_monitoring(request: StartMonitoringRequest):
-    """Start video monitoring for a device"""
+    """Start self-monitoring for personal use"""
     try:
         # Save monitoring session to database
         conn = sqlite3.connect('monitoring.db')
         cursor = conn.cursor()
         
         cursor.execute('''
-            INSERT INTO monitoring_sessions (device_id, parent_email, settings)
+            INSERT INTO monitoring_sessions (device_id, user_email, settings)
             VALUES (?, ?, ?)
-        ''', (request.deviceId, request.parentEmail, json.dumps(request.settings.dict())))
+        ''', (request.deviceId, "user@self-monitoring.local", json.dumps(request.settings.dict())))
         
         session_id = cursor.lastrowid
         conn.commit()
         conn.close()
         
-        # Start monitoring
-        monitor = VideoMonitor(session_id, request.settings)
+        # Start self-monitoring
+        monitor = SelfVideoMonitor(session_id, request.settings)
         monitor.start_monitoring()
         
         active_monitoring_sessions[request.deviceId] = {
             'session_id': session_id,
             'monitor': monitor,
-            'parent_email': request.parentEmail
+            'user_email': "user@self-monitoring.local"
         }
         
-        return {"status": "success", "message": "Monitoring started", "session_id": session_id}
+        return {"status": "success", "message": "Self-monitoring started", "session_id": session_id}
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to start monitoring: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to start self-monitoring: {e}")
 
 @router.post("/stop-monitoring")
 async def stop_monitoring(device_id: str = "mobile_device_001"):
-    """Stop video monitoring for a device"""
+    """Stop self-monitoring for personal use"""
     try:
         if device_id in active_monitoring_sessions:
             session = active_monitoring_sessions[device_id]
@@ -344,14 +437,14 @@ async def stop_monitoring(device_id: str = "mobile_device_001"):
             
             del active_monitoring_sessions[device_id]
             
-        return {"status": "success", "message": "Monitoring stopped"}
+        return {"status": "success", "message": "Self-monitoring stopped"}
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to stop monitoring: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to stop self-monitoring: {e}")
 
 @router.get("/stats")
 async def get_monitoring_stats(device_id: str = "mobile_device_001"):
-    """Get monitoring statistics"""
+    """Get self-monitoring statistics"""
     try:
         conn = sqlite3.connect('monitoring.db')
         cursor = conn.cursor()
@@ -410,19 +503,18 @@ async def get_monitoring_stats(device_id: str = "mobile_device_001"):
 
 @router.post("/send-test-report")
 async def send_test_report(request: dict):
-    """Send test report to parent email"""
+    """Send test report for self-monitoring"""
     try:
-        parent_email = request.get('parentEmail')
+        user_email = request.get('userEmail', 'user@self-monitoring.local')
         
-        if not parent_email:
-            raise HTTPException(status_code=400, detail="Parent email required")
+        # Self-monitoring doesn't require email validation
         
         # Create test report
         report_html = f"""
         <html>
         <body>
             <h2>🚭 Cigarette Detection - Test Report</h2>
-            <p>This is a test report from your child's device monitoring system.</p>
+            <p>This is a test report from your personal self-monitoring system.</p>
             
             <h3>📊 Sample Statistics</h3>
             <ul>
@@ -438,18 +530,17 @@ async def send_test_report(request: dict):
                 <li><strong>TikTok</strong> - Detected at 12:15 (Confidence: 92%)</li>
             </ul>
             
-            <p><em>This system helps you monitor smoking content in videos your child watches.</em></p>
+            <p><em>This system helps you monitor smoking content in videos you watch.</em></p>
             
             <hr>
-            <p><small>Cigarette Detection System - Parental Control Report</small></p>
+            <p><small>Smoking & Vaping Detection System - Self-Monitoring Report</small></p>
         </body>
         </html>
         """
         
         # In production, you would send actual email here
         # For now, we'll just simulate it
-        print(f"Test report would be sent to: {parent_email}")
-        print("Report content:", report_html)
+        # Test report would be sent to user in production
         
         return {"status": "success", "message": "Test report sent successfully"}
         
@@ -496,38 +587,35 @@ class EmailNotifier:
         self.email_user = os.getenv("NOTIFICATION_EMAIL", "")
         self.email_password = os.getenv("NOTIFICATION_PASSWORD", "")
     
-    def send_daily_report(self, parent_email: str, stats: dict):
-        """Send daily monitoring report (simulated for now)"""
+    def send_daily_report(self, user_email: str, stats: dict):
+        """Send daily self-monitoring report (simulated for now)"""
         try:
             body = self._create_daily_report_html(stats)
             
             # Email functionality disabled due to Python email module issues
             # In production, this would send actual emails
-            print(f"📧 SIMULATED EMAIL SENT TO: {parent_email}")
-            print("📋 Report Content:")
-            print(body[:200] + "...")
-            print("✅ Daily report simulation completed")
+            # Daily report would be sent to user in production
             
         except Exception as e:
-            print(f"Failed to send daily report: {e}")
+            pass  # Silent error handling
     
     def _create_daily_report_html(self, stats: dict) -> str:
         """Create HTML content for daily report"""
         return f"""
-        🚭 Daily Smoking Content Report
+        🚭 Daily Self-Monitoring Report
         
-        Here's your child's video watching activity for today:
+        Here's your personal video watching activity for today:
         
         📊 Today's Statistics:
         - Videos Watched: {stats.get('videos_watched', 0)}
         - Smoking Content Detected: {stats.get('smoking_detected', 0)}
         - Watch Time: {stats.get('watch_time_minutes', 0)} minutes
         
-        Stay informed about your child's digital content consumption.
+        Stay informed about your personal digital content consumption.
         """
 
 # Background task for sending scheduled reports
 async def send_scheduled_reports():
-    """Send daily/weekly reports to parents"""
+    """Send daily/weekly self-monitoring reports"""
     # This would run as a background task
     pass

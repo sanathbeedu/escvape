@@ -5,7 +5,8 @@ Includes image detection, parental control, and app protection features
 """
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
@@ -20,18 +21,18 @@ import threading
 import time
 
 # Import our detection logic
-from main import CigaretteDetector
+from main import SmokingVapingDetector
 
-# Import parental control API
-from parental_control_api import router as parental_control_router
+# Import self-monitoring API
+from parental_control_api import router as self_monitoring_router
 
 # Import app protection system
 from app_protection import AppProtectionSystem
 
 # FastAPI app initialization
 app = FastAPI(
-    title="Cigarette Detection API",
-    description="API for detecting cigarettes in images using YOLOv4 with parental control features",
+    title="Smoking & Vaping Detection API",
+    description="AI-powered smoking and vaping detection with self-monitoring features",
     version="1.0.0"
 )
 
@@ -44,11 +45,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include parental control router
-app.include_router(parental_control_router)
+# Include self-monitoring router
+app.include_router(self_monitoring_router)
+
+# Serve static files and web frontend
+@app.get("/")
+async def serve_frontend():
+    return FileResponse("web_frontend.html")
+
+@app.get("/simple")
+async def serve_simple_frontend():
+    return FileResponse("simple_frontend.html")
+
+@app.get("/manifest.json")
+async def serve_manifest():
+    return FileResponse("manifest.json")
 
 # Global instances
-detector = CigaretteDetector()
+detector = SmokingVapingDetector()
 protection_system = AppProtectionSystem()
 
 # Job management
@@ -142,11 +156,18 @@ async def detect_single_image(
             raise HTTPException(status_code=500, detail=f"Detection error: {error}")
         
         return {
+            "success": True,
             "filename": file.filename,
-            "cigarette_detected": result["cigarette_detected"],
-            "max_confidence": result["max_confidence"],
-            "detections": result["detections"],
-            "analysis_time": result.get("analysis_time", 0)
+            "cigarette_detected": result.get("cigarette_detected", False),  # Backward compatibility
+            "smoking_detected": result.get("smoking_detected", False),
+            "vaping_detected": result.get("vaping_detected", False),
+            "any_detected": result.get("any_detected", False),
+            "detection_types": result.get("detection_types", []),
+            "confidence": result.get("max_confidence", 0.0),
+            "total_detections": result.get("total_detections", 0),
+            "analysis_time": result.get("analysis_time", 0.0),
+            "detections": result.get("detections", []),
+            "message": f"Analysis complete. Found: {', '.join(result.get('detection_types', ['none']))}"
         }
         
     except Exception as e:
