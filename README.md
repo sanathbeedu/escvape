@@ -1,17 +1,17 @@
-# 🚭 Cigarette Detection System
+# Vaping and Smoking Detection System
 
-A comprehensive cross-platform application for detecting cigarettes in images and videos using machine learning, with advanced parental control features and tamper detection.
+AI-powered detection of smoking in images and videos, including vaping devices and cigarettes. Includes advanced parental control features and tamper detection.
 
 ## 🌟 Features
 
 ### Core Detection
-- **Image Analysis**: Detect cigarettes in photos using YOLOv4 deep learning model
+- **Image Analysis**: Detect smoking in photos (vaping devices and cigarettes) with a YOLOv4-based model
 - **Batch Processing**: Analyze multiple images simultaneously
-- **Apple Photos Integration**: Scan your photo library for smoking content
-- **Real-time Video Monitoring**: Monitor video content in YouTube, TikTok, Instagram, Netflix
+- **Apple Photos Integration**: Scan your photo library for vaping/smoking content
+- **Real-time Video Monitoring**: Monitor video content (YouTube, TikTok, Instagram, Netflix) for smoking content (vaping devices and cigarettes)
 
 ### Parental Control
-- **Video Content Monitoring**: Track smoking content in videos being watched
+- **Video Content Monitoring**: Track vaping and smoking content in videos being watched
 - **Real-time Alerts**: Instant notifications when smoking content is detected
 - **Daily/Weekly Reports**: Comprehensive reports sent to parents via email
 - **Configurable Sensitivity**: Adjustable detection sensitivity levels
@@ -72,7 +72,7 @@ A comprehensive cross-platform application for detecting cigarettes in images an
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd cigarette-detector
+cd escvape
 
 # Install Python dependencies
 pip install -r requirements.txt
@@ -102,35 +102,26 @@ npm install
 npx expo start
 ```
 
-## 📱 Usage Guide
-
 ### Desktop Application
 
 1. **Image Detection Tab**:
    - Select image file or take photo
    - Adjust confidence threshold
-   - Click "Analyze Image" to detect cigarettes
+   - Click "Analyze Image" to detect smoking using vaping devices and cigarettes in images
    - View detailed results and detection confidence
 
 2. **Parental Control Tab**:
    - Enter parent email and device ID
    - Configure monitoring settings (alerts, reports, sensitivity)
-   - Start/stop video monitoring
+   - Start/stop video monitoring for smoking using vaping devices and cigarettes
    - Enable app protection with tamper detection
    - Send test reports to verify email notifications
-
-3. **Monitoring Stats Tab**:
-   - View real-time statistics
-   - Track videos watched and smoking content detected
-   - Monitor detection rates and trends
-   - Auto-refreshes every 30 seconds
-
 ### Mobile Application
 
 1. **Detection Screen**:
    - Take photo or select from gallery
-   - Adjust detection sensitivity
-   - Get instant results with confidence scores
+   - Adjust detection sensitivity for smoking using vaping devices and cigarettes
+   - Get instant results with confidence scores for smoking using vaping devices and cigarettes in images
 
 2. **Parental Control Screen**:
    - Configure parent email and monitoring settings

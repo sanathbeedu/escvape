@@ -31,8 +31,8 @@ from app_protection import AppProtectionSystem
 
 # FastAPI app initialization
 app = FastAPI(
-    title="Smoking & Vaping Detection API",
-    description="AI-powered smoking and vaping detection with self-monitoring features",
+    title="Vaping and Smoking Detection System",
+    description="AI-powered detection of smoking in images and videos, including vaping devices and cigarettes.",
     version="1.0.0"
 )
 

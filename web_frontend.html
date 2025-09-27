@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚭 Smoking & Vaping Detection System</title>
+    <title>Vaping and Smoking Detection System</title>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -335,9 +335,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚭 Smoking & Vaping Detection System</h1>
-            <p>AI-Powered Image Analysis & Self-Monitoring</p>
-            <p><em>Detects cigarettes, e-cigarettes, vapes, and smoking behavior</em></p>
+            <h1>Vaping and Smoking Detection System</h1>
+            <p>AI-powered detection of smoking in images and videos, including vaping devices and cigarettes.</p>
             <div id="api-status">
                 <span class="status-indicator status-offline"></span>
                 <span id="status-text">Checking API connection...</span>
@@ -345,21 +344,21 @@
         </div>
         
         <div class="tabs">
-            <button class="tab active" onclick="showTab('detection')">🔍 Smoking & Vaping Detection</button>
+            <button class="tab active" onclick="showTab('detection')">🔍 Vaping and Smoking Detection</button>
             <button class="tab" onclick="showTab('self-monitoring')">🔍 Self-Monitoring</button>
             <button class="tab" onclick="showTab('stats')">📊 Statistics</button>
         </div>
         
         <!-- Image Detection Tab -->
         <div id="detection" class="tab-content active">
-            <h2>🔍 Smoking & Vaping Detection</h2>
-            <p>Upload an image to detect smoking and vaping using AI analysis</p>
+            <h2>🔍 Vaping and Smoking Detection</h2>
+            <p>Upload an image to detect smoking (vaping devices and cigarettes) using AI analysis</p>
             
             <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
                 <div id="upload-content">
                     <p>📁 Drop image here or click to browse</p>
                     <p>Supports: JPG, PNG, BMP, TIFF</p>
-                    <p>Detects: Cigarettes, E-cigarettes, Vapes, Smoking behavior</p>
+                    <p>Detects: Smoking content (vaping devices and cigarettes)</p>
                 </div>
                 <input type="file" id="file-input" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
                 <img id="image-preview" class="image-preview" style="display: none;">
@@ -553,7 +552,7 @@
             
             btn.innerHTML = '<span class="loading"></span> Analyzing...';
             btn.disabled = true;
-            results.innerHTML = '<div class="loading">Analyzing image for smoking and vaping content...</div>';
+            results.innerHTML = '<div class="loading">Analyzing image for smoking content (vaping devices and cigarettes)...</div>';
             
             try {
                 

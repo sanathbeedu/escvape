@@ -1,4 +1,6 @@
-# 🚀 Quick Setup Guide
+# 🚀 Quick Setup Guide — Vaping & Smoking Detection System
+
+AI-powered detection of smoking in images and videos, including vaping devices and cigarettes.
 
 ## Prerequisites
 - Python 3.8+ installed
@@ -9,8 +11,8 @@
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/sigdet.git
-cd sigdet
+git clone https://github.com/YOUR_USERNAME/escvape.git
+cd escvape
 ```
 
 ### 2. Install Dependencies
@@ -28,8 +30,8 @@ python setup_models.py
 # Start API server
 python api_server.py
 
-# Open web interface
-open web_frontend.html
+# Open the web interface in your browser
+# Visit: http://localhost:8000/
 ```
 
 ## Usage Options
@@ -37,7 +39,7 @@ open web_frontend.html
 ### 🌐 Web Interface (Recommended)
 - Modern, responsive design
 - Works on desktop and mobile
-- Full feature access
+- Full feature access: detect smoking (vaping devices and cigarettes) in images and videos
 - PWA installable
 
 ### 📱 Mobile App
@@ -60,13 +62,13 @@ python main.py --apple-photos
 ```
 
 ## Features
-- ✅ AI cigarette detection
+- ✅ AI-powered detection of smoking in images and videos, including vaping devices and cigarettes
 - ✅ Parental control monitoring
 - ✅ Real-time video surveillance
 - ✅ Cross-platform compatibility
 - ✅ App protection system
 
 ## Support
-- Web interface: `http://localhost:8000/web_frontend.html`
+- Web interface: `http://localhost:8000/`
 - API docs: `http://localhost:8000/docs`
 - Mobile access: `http://YOUR_IP:8000/web_frontend.html`

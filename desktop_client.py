@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Desktop GUI Client for Cigarette Detection System
+Desktop GUI Client for Vaping and Smoking Detection System
 Includes image detection, parental control, and app protection features
 """
 
@@ -16,7 +16,7 @@ import time
 class CigaretteDetectionGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("🚭 Cigarette Detection System")
+        self.root.title("Vaping and Smoking Detection System")
         self.root.geometry("900x700")
         self.root.minsize(800, 600)
         
@@ -48,7 +48,7 @@ class CigaretteDetectionGUI:
         main_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Title label
-        title_label = ttk.Label(main_frame, text="🚭 Cigarette Detection System", 
+        title_label = ttk.Label(main_frame, text="Vaping and Smoking Detection System", 
                                font=("Arial", 18, "bold"))
         title_label.pack(pady=(0, 10))
         
@@ -100,7 +100,7 @@ class CigaretteDetectionGUI:
         canvas.configure(yscrollcommand=scrollbar.set)
         
         # Title
-        title_label = ttk.Label(scrollable_frame, text="🔍 Cigarette Detection", 
+        title_label = ttk.Label(scrollable_frame, text="🔍 Vaping and Smoking Detection", 
                                font=("Arial", 16, "bold"))
         title_label.pack(pady=10)
         
@@ -369,7 +369,7 @@ class CigaretteDetectionGUI:
         cigarette_detected = result.get('cigarette_detected', False)
         max_confidence = result.get('max_confidence', 0)
         
-        self.results_text.insert(tk.END, f"CIGARETTE DETECTION RESULTS\n")
+        self.results_text.insert(tk.END, f"SMOKING DETECTION RESULTS (vaping devices and cigarettes)\n")
         self.results_text.insert(tk.END, "=" * 40 + "\n\n")
         
         if cigarette_detected:
