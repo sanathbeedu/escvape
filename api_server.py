@@ -4,7 +4,8 @@ FastAPI Backend Server for Cigarette Detection System
 Includes image detection, parental control, and app protection features
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Form, WebSocket, WebSocketDisconnect
+from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,12 +29,24 @@ from parental_control_api import router as self_monitoring_router
 
 # Import app protection system
 from app_protection import AppProtectionSystem
+from alerts import alert_manager, set_event_loop
 
 # FastAPI app initialization
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Register event loop for cross-thread WebSocket broadcasts
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.get_running_loop()
+    set_event_loop(loop)
+    yield
+
 app = FastAPI(
     title="Vaping and Smoking Detection System",
     description="AI-powered detection of smoking in images and videos, including vaping devices and cigarettes.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Configure CORS
@@ -47,6 +60,36 @@ app.add_middleware(
 
 # Include self-monitoring router
 app.include_router(self_monitoring_router)
+
+# WebSocket endpoint for real-time alerts
+@app.websocket("/ws/alerts")
+async def alerts_ws(websocket: WebSocket):
+    await alert_manager.connect(websocket)
+    try:
+        print("[WS] client connected")
+        while True:
+            # Keep the connection alive; we don't expect client messages
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        alert_manager.disconnect(websocket)
+        print("[WS] client disconnected")
+
+# Simple test endpoint to verify alerts pipeline end-to-end
+@app.post("/alerts/test")
+async def send_test_alert(kind: str = "smoking", confidence: float = 0.87):
+    """Broadcast a test detection alert to all connected WebSocket clients.
+    Call with: curl -X POST "http://localhost:8000/alerts/test?kind=vaping&confidence=0.92"
+    """
+    message = {
+        "type": "detection",
+        "label": "Vaping and Smoking Detection",
+        "detection_type": kind,
+        "max_confidence": float(confidence),
+        "timestamp": time.time(),
+        "screenshot_path": None,
+    }
+    await alert_manager.broadcast(message)
+    return {"status": "ok", "message": message}
 
 # Serve static files and web frontend
 @app.get("/")

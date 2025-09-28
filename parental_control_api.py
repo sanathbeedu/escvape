@@ -22,6 +22,7 @@ import time
 import os
 from PIL import ImageGrab
 from main import SmokingVapingDetector
+from alerts import alert_manager, broadcast_from_thread
 
 # Safari-only video monitoring - no additional dependencies needed
 
@@ -264,9 +265,14 @@ class SelfVideoMonitor:
                 print("⏳ Skipping analysis - within cooldown period")
                 return
             
-            # Create temporary file for analysis
-            import os
-            temp_path = os.path.abspath(f"temp_screenshot_{self.session_id}_{int(current_time)}.jpg")
+            # Create temporary file for analysis in repo-local temp_screens/
+            screens_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "temp_screens")
+            try:
+                os.makedirs(screens_dir, exist_ok=True)
+            except OSError:
+                pass
+            temp_filename = f"temp_screenshot_{self.session_id}_{int(current_time)}.jpg"
+            temp_path = os.path.join(screens_dir, temp_filename)
             cv2.imwrite(temp_path, screenshot)
             print(f"💾 Temporary screenshot saved: {temp_path}")
             
@@ -342,6 +348,20 @@ class SelfVideoMonitor:
             print(f"🚨 SELF-MONITORING ALERT: {alert_type} detected!")
             print(f"Screenshot saved: {screenshot_path}")
             print(f"Detection confidence: {detection_result.get('max_confidence', 0):.2f}")
+            
+            # Broadcast WebSocket alert from thread-safe helper
+            message = {
+                "type": "detection",
+                "label": "Vaping and Smoking Detection",
+                "detection_type": alert_type.replace("🚭💨 ", "").replace("🚭 ", "").replace("💨 ", "").lower(),
+                "max_confidence": float(detection_result.get("max_confidence", 0.0)),
+                "timestamp": time.time(),
+                "screenshot_path": screenshot_path,
+            }
+            try:
+                broadcast_from_thread(message)
+            except Exception:
+                pass
             
             # Save detection to database
             self._handle_detection(detection_result, {'app': 'Safari', 'title': 'Video Content'}, screenshot_path)

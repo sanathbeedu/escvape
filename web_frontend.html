@@ -330,6 +330,22 @@
             background: #e9ecef;
             border-radius: 6px;
         }
+        /* Alert banner */
+        #alert-banner {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff4757;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            z-index: 9999;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
     </style>
 </head>
 <body>
@@ -445,6 +461,9 @@
         </div>
     </div>
 
+    <!-- Global alert banner -->
+    <div id="alert-banner">Detection alert</div>
+
     <script>
         // API Base URL
         const API_BASE_URL = 'http://localhost:8000';
@@ -454,6 +473,33 @@
         
         // Check API status on load
         checkAPIStatus();
+
+        // Connect WebSocket for real-time alerts
+        (function connectAlerts(){
+          const banner = document.getElementById('alert-banner');
+          const wsProto = (window.location.protocol === 'https:') ? 'wss' : 'ws';
+          const wsUrl = `${wsProto}://${window.location.host}/ws/alerts`;
+          const ws = new WebSocket(wsUrl);
+          ws.onopen = () => console.log('[WS] connected to', wsUrl);
+          ws.onmessage = (evt) => {
+            try {
+              const data = JSON.parse(evt.data);
+              if (data.type === 'detection') {
+                const kind = (data.detection_type || 'smoking').toString();
+                const conf = Number(data.max_confidence || 0) * 100;
+                banner.textContent = `Alert: ${kind} detected (${conf.toFixed(1)}% confidence)`;
+                banner.style.background = kind.includes('vaping') && !kind.includes('smoking') ? '#1e90ff' : '#ff4757';
+                banner.style.display = 'block';
+                setTimeout(() => { banner.style.display = 'none'; }, 5000);
+              }
+            } catch (e) { /* ignore */ }
+          };
+          ws.onerror = (e) => console.error('[WS] error', e);
+          ws.onclose = () => {
+            console.log('[WS] disconnected, retrying in 3s');
+            setTimeout(connectAlerts, 3000);
+          };
+        })();
         
         // Add event listener for analyze button
         document.getElementById('analyze-btn').addEventListener('click', analyzeImage);

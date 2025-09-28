@@ -270,6 +270,10 @@ site/
 .cache/
 cache/
 
+# Project-specific temporary screenshots
+temp_screens/
+temp_screens/**
+
 # ========================================
 # System Files
 # ========================================
