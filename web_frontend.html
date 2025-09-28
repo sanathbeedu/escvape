@@ -346,6 +346,59 @@
             font-weight: 600;
             letter-spacing: 0.2px;
         }
+        /* Education modal overlay */
+        .edu-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 9998;
+            backdrop-filter: blur(2px);
+        }
+        .edu-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(720px, 92vw);
+            background: #111827;
+            color: #fff;
+            border-radius: 14px;
+            box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+            overflow: hidden;
+        }
+        .edu-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #1f2937;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .edu-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .edu-close {
+            background: transparent;
+            color: #fff;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        .edu-body {
+            background: #0b1220;
+            aspect-ratio: 16/9;
+        }
+        .edu-body iframe, .edu-body video {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            display: block;
+        }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -464,6 +517,21 @@
     <!-- Global alert banner -->
     <div id="alert-banner">Detection alert</div>
 
+    <!-- Education Modal Overlay -->
+    <div class="edu-overlay" id="edu-overlay" role="dialog" aria-modal="true" aria-labelledby="edu-title">
+      <div class="edu-modal">
+        <div class="edu-header">
+          <h3 class="edu-title" id="edu-title">Educational Tip</h3>
+          <button class="edu-close" id="edu-close" aria-label="Close">✕</button>
+        </div>
+        <div class="edu-body">
+          <!-- Both players are present; JS toggles which is visible based on EDUCATION_MODE -->
+          <iframe id="edu-iframe" class="hidden" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen title="Educational Video"></iframe>
+          <video id="edu-video" class="hidden" playsinline></video>
+        </div>
+      </div>
+    </div>
+
     <script>
         // API Base URL
         const API_BASE_URL = 'http://localhost:8000';
@@ -473,6 +541,128 @@
         
         // Check API status on load
         checkAPIStatus();
+
+        // Config: Choose source for educational content
+        // Options: 'youtube' (uses EDUCATION_VIDEO_URL) or 'local' (uses EDUCATION_LOCAL_SRC)
+        const EDUCATION_MODE = 'youtube'; // change to 'local' in environments without YouTube embedding
+        // YouTube URL (any watch/short/embed form; we auto-convert to embeddable)
+        const EDUCATION_VIDEO_URL = 'https://www.youtube.com/watch?v=oEGovehMaFs&autoplay=1&mute=1&rel=0&modestbranding=1';
+        // Local MP4 path (place file under assets/), e.g., assets/education.mp4
+        const EDUCATION_LOCAL_SRC = 'assets/education.mp4';
+        let lastEducationShownAt = 0; // cooldown tracker
+        const EDUCATION_COOLDOWN_MS = 60 * 1000; // 60s
+
+        // Modal controls
+        const overlayEl = document.getElementById('edu-overlay');
+        const iframeEl = document.getElementById('edu-iframe');
+        const videoEl = document.getElementById('edu-video');
+        const closeBtn = document.getElementById('edu-close');
+
+        function toYouTubeEmbed(urlStr) {
+          try {
+            const u = new URL(urlStr);
+            // Prefer privacy-enhanced domain
+            const baseHost = 'www.youtube-nocookie.com';
+            const params = new URLSearchParams(u.search);
+            // Always ensure autoplay+mute are set (mute helps autoplay policy)
+            if (!params.has('autoplay')) params.set('autoplay', '1');
+            if (!params.has('mute')) params.set('mute', '1');
+            if (!params.has('rel')) params.set('rel', '0');
+            if (!params.has('modestbranding')) params.set('modestbranding', '1');
+            // Provide origin for some embed policies
+            if (!params.has('origin')) params.set('origin', window.location.origin);
+
+            let videoId = '';
+            if (u.hostname.includes('youtu.be')) {
+              videoId = u.pathname.replace(/^\//, '');
+            } else if (u.hostname.includes('youtube.com')) {
+              if (u.pathname.startsWith('/watch')) {
+                videoId = params.get('v') || '';
+              } else if (u.pathname.startsWith('/embed/')) {
+                // Already embed format
+                return `${u.protocol}//${baseHost}${u.pathname}?${params.toString()}`;
+              }
+            }
+            if (videoId) {
+              return `${u.protocol}//${baseHost}/embed/${videoId}?${params.toString()}`;
+            }
+            // Fallback: return original string
+            return urlStr;
+          } catch (e) {
+            return urlStr;
+          }
+        }
+
+        function showEducationModal(kind, confidence) {
+          const now = Date.now();
+          if (now - lastEducationShownAt < EDUCATION_COOLDOWN_MS) return;
+          lastEducationShownAt = now;
+
+          // Set contextual title
+          const titleEl = document.getElementById('edu-title');
+          const prettyKind = String(kind || 'smoking').replace(/\b\w/g, c => c.toUpperCase());
+          titleEl.textContent = `${prettyKind} detected — learn more`;
+
+          // Reset both players
+          iframeEl.src = '';
+          videoEl.pause();
+          videoEl.removeAttribute('src');
+          videoEl.load();
+          // Choose player based on mode
+          if (EDUCATION_MODE === 'youtube') {
+            videoEl.classList.add('hidden');
+            iframeEl.classList.remove('hidden');
+            setTimeout(() => {
+              iframeEl.src = toYouTubeEmbed(EDUCATION_VIDEO_URL);
+              // Fallback in case embedding is blocked by uploader (show link)
+              setTimeout(() => {
+                try { if (!iframeEl.src) return; } catch (e) {}
+                if (!document.getElementById('edu-fallback')) {
+                  const a = document.createElement('a');
+                  a.id = 'edu-fallback';
+                  a.href = EDUCATION_VIDEO_URL;
+                  a.target = '_blank';
+                  a.rel = 'noopener noreferrer';
+                  a.textContent = 'Open educational video in a new tab';
+                  a.style.display = 'block';
+                  a.style.padding = '10px 14px';
+                  a.style.background = '#1f2937';
+                  a.style.color = '#fff';
+                  a.style.textAlign = 'center';
+                  a.style.textDecoration = 'none';
+                  overlayEl.querySelector('.edu-modal').appendChild(a);
+                }
+              }, 1500);
+            }, 10);
+          } else {
+            // Local video option
+            iframeEl.classList.add('hidden');
+            videoEl.classList.remove('hidden');
+            videoEl.src = EDUCATION_LOCAL_SRC;
+            videoEl.autoplay = true;
+            videoEl.muted = true;
+            videoEl.controls = true;
+            // Attempt to play (may require user gesture in some browsers)
+            setTimeout(() => { videoEl.play().catch(() => {}); }, 50);
+          }
+
+          overlayEl.style.display = 'block';
+        }
+
+        function hideEducationModal() {
+          overlayEl.style.display = 'none';
+          // Stop playback and cleanup
+          iframeEl.src = '';
+          videoEl.pause();
+          videoEl.removeAttribute('src');
+          videoEl.load();
+        }
+
+        closeBtn.addEventListener('click', hideEducationModal);
+        overlayEl.addEventListener('click', (e) => {
+          // close when clicking outside the modal
+          if (e.target === overlayEl) hideEducationModal();
+        });
 
         // Connect WebSocket for real-time alerts
         (function connectAlerts(){
@@ -491,6 +681,8 @@
                 banner.style.background = kind.includes('vaping') && !kind.includes('smoking') ? '#1e90ff' : '#ff4757';
                 banner.style.display = 'block';
                 setTimeout(() => { banner.style.display = 'none'; }, 5000);
+                // Show the education modal (cooldown-protected)
+                showEducationModal(kind, conf);
               }
             } catch (e) { /* ignore */ }
           };
