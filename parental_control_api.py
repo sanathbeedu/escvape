@@ -114,6 +114,7 @@ class SelfVideoMonitor:
         self.detector = SmokingVapingDetector()
         self.last_detection_time = 0
         self.detection_cooldown = 30  # seconds between detections for same content
+        self.max_screenshots = 5  # Keep only last 5 screenshots
         
     def start_monitoring(self):
         """Start personal video content monitoring"""
@@ -154,16 +155,25 @@ class SelfVideoMonitor:
         video_windows = []
         
         try:
-            # Check if Safari is running with video content
+            # Check if Safari is the frontmost application
             print("🔍 Checking for Safari windows...")
+            if not self._is_safari_frontmost():
+                print("⚠️ Safari is not the active application - skipping capture")
+                return video_windows
+            
+            # Get Safari window bounds (without activating)
             safari_bounds = self._get_safari_window_bounds()
             if safari_bounds:
-                print(f"✅ Safari window found: {safari_bounds}")
-                video_windows.append({
-                    'app': 'youtube',
-                    'title': 'Safari - YouTube',
-                    'window': None  # Not needed for Safari capture
-                })
+                # Verify Safari is on YouTube
+                if self._is_safari_on_youtube():
+                    print(f"✅ Safari on YouTube detected: {safari_bounds}")
+                    video_windows.append({
+                        'app': 'youtube',
+                        'title': 'Safari - YouTube',
+                        'window': None  # Not needed for Safari capture
+                    })
+                else:
+                    print("⚠️ Safari is open but not on YouTube - skipping")
             else:
                 print("❌ No Safari window detected")
                 
@@ -176,25 +186,111 @@ class SelfVideoMonitor:
         """Check if app should be self-monitored (Safari YouTube only)"""
         return app_name == 'youtube'
     
+    def _is_safari_frontmost(self):
+        """Check if Safari is the frontmost (active) application"""
+        try:
+            import subprocess
+            
+            # AppleScript to check frontmost application
+            frontmost_script = '''
+            tell application "System Events"
+                set frontApp to name of first application process whose frontmost is true
+                return frontApp
+            end tell
+            '''
+            
+            result = subprocess.run(['osascript', '-e', frontmost_script], 
+                                  capture_output=True, text=True, timeout=2)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                frontmost_app = result.stdout.strip()
+                is_safari = frontmost_app == "Safari"
+                print(f"🎯 Frontmost app: {frontmost_app} | Is Safari: {is_safari}")
+                return is_safari
+            
+            return False
+            
+        except Exception as e:
+            print(f"⚠️ Could not check frontmost app: {e}")
+            return False
+    
+    def _is_safari_on_youtube(self):
+        """Check if Safari's current tab is on YouTube"""
+        try:
+            import subprocess
+            
+            # AppleScript to get the current URL from Safari
+            url_script = '''
+            tell application "Safari"
+                if it is running then
+                    try
+                        set currentURL to URL of current tab of front window
+                        return currentURL
+                    end try
+                end if
+            end tell
+            '''
+            
+            result = subprocess.run(['osascript', '-e', url_script], 
+                                  capture_output=True, text=True, timeout=3)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                url = result.stdout.strip().lower()
+                # Check if URL contains youtube.com
+                is_youtube = 'youtube.com' in url or 'youtu.be' in url
+                print(f"🌐 Safari URL: {url[:50]}... | YouTube: {is_youtube}")
+                return is_youtube
+            
+            return False
+            
+        except Exception as e:
+            print(f"⚠️ Could not verify YouTube URL: {e}")
+            # If we can't verify, assume it's not YouTube to be safe
+            return False
+    
     def _capture_window(self, window_info):
-        """Capture Safari video window"""
+        """Capture Safari video window - focused on YouTube video player only"""
         try:
             print("📷 Attempting to capture Safari window...")
+            
+            # Re-verify Safari is still frontmost before capture (prevent race condition)
+            if not self._is_safari_frontmost():
+                print("⚠️ Safari is no longer frontmost - aborting capture")
+                return None
+            
             safari_bounds = self._get_safari_window_bounds()
             
             if safari_bounds:
                 left, top, width, height = safari_bounds
                 print(f"🖼️ Capturing Safari at bounds: {safari_bounds}")
                 
+                # Final check: verify Safari is STILL frontmost right before capture
+                if not self._is_safari_frontmost():
+                    print("⚠️ Safari lost focus during setup - aborting capture")
+                    return None
+                
                 # Capture Safari window
                 browser_screenshot = ImageGrab.grab(bbox=(left, top, left + width, top + height))
                 print(f"✅ Safari screenshot captured: {browser_screenshot.size}")
                 
-                # Focus on YouTube video player area
-                video_left = int(width * 0.05)
-                video_top = int(height * 0.12)
-                video_width = int(width * 0.75)
-                video_height = int(height * 0.65)
+                # Adaptive YouTube video player area detection
+                # Works for both normal mode and theater mode
+                # Theater mode: video is wider (~90% width) and taller (~70% height)
+                # Normal mode: video is narrower (~60% width) and shorter (~45% height)
+                
+                # Use generous margins that work for both modes
+                video_left = int(width * 0.08)      # Minimal left margin (works for theater mode)
+                video_top = int(height * 0.10)      # Skip top navigation bar
+                video_width = int(width * 0.84)     # Wide capture (84% width - works for theater mode)
+                video_height = int(height * 0.70)   # Tall capture (70% height - works for theater mode)
+                
+                # Ensure we have valid dimensions
+                if video_width < 100 or video_height < 100:
+                    print("⚠️ Video area too small, using fallback dimensions")
+                    video_left = int(width * 0.10)
+                    video_top = int(height * 0.10)
+                    video_width = int(width * 0.80)
+                    video_height = int(height * 0.70)
                 
                 screenshot = browser_screenshot.crop((
                     video_left,
@@ -202,7 +298,9 @@ class SelfVideoMonitor:
                     video_left + video_width,
                     video_top + video_height
                 ))
-                print(f"🎬 Video area cropped to: {screenshot.size}")
+                print(f"🎬 Video player area cropped to: {screenshot.size}")
+                print(f"📐 Crop region: left={video_left}, top={video_top}, width={video_width}, height={video_height}")
+                print(f"🎭 Capture mode: Adaptive (supports both normal and theater mode)")
                 
                 # Convert to OpenCV format
                 screenshot_cv = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
@@ -217,19 +315,22 @@ class SelfVideoMonitor:
             return None
     
     def _get_safari_window_bounds(self):
-        """Get Safari window bounds for video capture"""
+        """Get Safari window bounds for video capture (without activating)"""
         try:
             import subprocess
             
+            # Get bounds without activating Safari, check if window exists
             safari_script = '''
             tell application "Safari"
                 if it is running then
-                    activate
-                    delay 0.5
-                    tell front window
-                        set windowBounds to bounds
-                        return windowBounds
-                    end tell
+                    if (count of windows) > 0 then
+                        tell front window
+                            if visible then
+                                set windowBounds to bounds
+                                return windowBounds
+                            end if
+                        end tell
+                    end if
                 end if
             end tell
             '''
@@ -252,7 +353,7 @@ class SelfVideoMonitor:
             return None
             
         except Exception as e:
-            pass  # Silent error handling
+            print(f"⚠️ Error getting Safari bounds: {e}")
             return None
     
     def _analyze_screenshot(self, screenshot, window_info):
@@ -260,7 +361,9 @@ class SelfVideoMonitor:
         try:
             current_time = time.time()
             
-            # Avoid too frequent detections
+            # Note: Cooldown is applied globally, not per-video
+            # This means switching to a different video won't trigger detection
+            # if within cooldown period from previous detection
             if current_time - self.last_detection_time < self.detection_cooldown:
                 print("⏳ Skipping analysis - within cooldown period")
                 return
@@ -311,7 +414,8 @@ class SelfVideoMonitor:
                     print("🚨 BOTH SMOKING & VAPING DETECTED!")
                 
                 self._send_self_alert(detection_type, result, temp_path)
-                # Keep the file for evidence
+                # Keep the file for evidence and cleanup old screenshots
+                self._cleanup_old_screenshots()
             else:
                 print("✅ No smoking or vaping detected - removing temp file")
                 # Remove temp file if no detection
@@ -330,6 +434,40 @@ class SelfVideoMonitor:
             except OSError:
                 pass
             pass  # Silent error handling
+    
+    def _cleanup_old_screenshots(self):
+        """Keep only the last 5 screenshots, delete older ones"""
+        try:
+            screens_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "temp_screens")
+            if not os.path.exists(screens_dir):
+                return
+            
+            # Get all screenshot files for this session
+            screenshot_files = []
+            for filename in os.listdir(screens_dir):
+                if filename.startswith(f"temp_screenshot_{self.session_id}_") and filename.endswith(".jpg"):
+                    filepath = os.path.join(screens_dir, filename)
+                    # Get file modification time
+                    mtime = os.path.getmtime(filepath)
+                    screenshot_files.append((filepath, mtime))
+            
+            # Sort by modification time (newest first)
+            screenshot_files.sort(key=lambda x: x[1], reverse=True)
+            
+            # Keep only the last 5, delete the rest
+            if len(screenshot_files) > self.max_screenshots:
+                files_to_delete = screenshot_files[self.max_screenshots:]
+                for filepath, _ in files_to_delete:
+                    try:
+                        os.remove(filepath)
+                        print(f"🗑️ Deleted old screenshot: {os.path.basename(filepath)}")
+                    except OSError as e:
+                        print(f"⚠️ Failed to delete {filepath}: {e}")
+                
+                print(f"✅ Kept last {self.max_screenshots} screenshots, deleted {len(files_to_delete)} old ones")
+        
+        except Exception as e:
+            print(f"⚠️ Error cleaning up old screenshots: {e}")
     
     def _send_self_alert(self, detection_type, detection_result, screenshot_path):
         """Send self-monitoring alert"""
@@ -503,16 +641,44 @@ async def get_monitoring_stats(device_id: str = "mobile_device_001"):
         last_detection_result = cursor.fetchone()
         last_detection = last_detection_result[0] if last_detection_result else None
         
-        # Get daily stats (mock data for now)
-        daily_stats = [
-            {"date": "2024-01-01", "videos": 5, "detections": 1},
-            {"date": "2024-01-02", "videos": 3, "detections": 0},
-        ]
+        # Get daily stats from database
+        cursor.execute('''
+            SELECT 
+                DATE(detection_time) as date,
+                COUNT(*) as detections
+            FROM video_detections 
+            WHERE session_id = ?
+            GROUP BY DATE(detection_time)
+            ORDER BY date DESC
+            LIMIT 30
+        ''', (session_id,))
+        
+        daily_stats = []
+        for row in cursor.fetchall():
+            daily_stats.append({
+                "date": row[0],
+                "detections": row[1]
+            })
+        
+        # Calculate total videos watched from daily_stats table
+        cursor.execute('''
+            SELECT COALESCE(SUM(total_videos_watched), 0)
+            FROM daily_stats 
+            WHERE session_id = ?
+        ''', (session_id,))
+        
+        total_videos_result = cursor.fetchone()
+        total_videos = total_videos_result[0] if total_videos_result else 0
+        
+        # If no data in daily_stats table, estimate from detection count
+        # (This is a fallback - in production you'd track all videos watched)
+        if total_videos == 0 and smoking_detections > 0:
+            total_videos = smoking_detections
         
         conn.close()
         
         return MonitoringStats(
-            totalVideosWatched=20,  # This would be calculated from actual data
+            totalVideosWatched=total_videos,
             smokingContentDetected=smoking_detections,
             lastDetection=last_detection,
             dailyStats=daily_stats
