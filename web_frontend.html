@@ -209,6 +209,18 @@
             font-size: 2.5em;
             font-weight: bold;
             margin-bottom: 10px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        /* Smaller font for timestamp display */
+        #last-detection {
+            font-size: 1.3em;
+            line-height: 1.3;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .stat-label {
@@ -1053,6 +1065,9 @@
                 
                 if (response.ok) {
                     const stats = await response.json();
+                    console.log('📊 Stats received:', stats);
+                    console.log('🕐 Last detection raw value:', stats.lastDetection);
+                    
                     document.getElementById('total-videos').textContent = stats.totalVideosWatched || 0;
                     document.getElementById('smoking-detected').textContent = stats.smokingContentDetected || 0;
                     
@@ -1061,16 +1076,29 @@
                         : 0;
                     document.getElementById('detection-rate').textContent = `${rate}%`;
                     
-                    const lastDetection = stats.lastDetection 
-                        ? new Date(stats.lastDetection).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          })
-                        : 'Never';
+                    let lastDetection = 'Never';
+                    if (stats.lastDetection) {
+                        try {
+                            const detectionDate = new Date(stats.lastDetection);
+                            // Check if date is valid
+                            if (!isNaN(detectionDate.getTime())) {
+                                lastDetection = detectionDate.toLocaleString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    hour12: true
+                                });
+                            } else {
+                                console.error('Invalid date:', stats.lastDetection);
+                                lastDetection = 'Invalid Date';
+                            }
+                        } catch (e) {
+                            console.error('Error parsing date:', e, stats.lastDetection);
+                            lastDetection = 'Error';
+                        }
+                    }
                     document.getElementById('last-detection').textContent = lastDetection;
                     
                     results.innerHTML = '<div class="alert alert-success">✅ Statistics updated</div>';
