@@ -1062,7 +1062,14 @@
                     document.getElementById('detection-rate').textContent = `${rate}%`;
                     
                     const lastDetection = stats.lastDetection 
-                        ? new Date(stats.lastDetection).toLocaleDateString()
+                        ? new Date(stats.lastDetection).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          })
                         : 'Never';
                     document.getElementById('last-detection').textContent = lastDetection;
                     
