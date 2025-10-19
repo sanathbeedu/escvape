@@ -351,9 +351,9 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.55);
-            z-index: 9998;
-            backdrop-filter: blur(2px);
+            background: rgba(0,0,0,0.75);
+            z-index: 999999;
+            backdrop-filter: blur(4px);
         }
         .edu-modal {
             position: absolute;
@@ -381,12 +381,18 @@
             font-weight: 700;
         }
         .edu-close {
-            background: transparent;
+            background: #ef4444;
             color: #fff;
             border: none;
             font-size: 18px;
+            font-weight: bold;
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .edu-close:hover {
+            background: #dc2626;
         }
         .edu-body {
             background: #0b1220;
@@ -597,6 +603,26 @@
           const now = Date.now();
           if (now - lastEducationShownAt < EDUCATION_COOLDOWN_MS) return;
           lastEducationShownAt = now;
+
+          // Bring browser window to foreground
+          try {
+            window.focus();
+            // Request notification permission to ensure window can come to front
+            if (Notification.permission === 'default') {
+              Notification.requestPermission();
+            }
+            // Play a brief silent audio to activate the window (browser security workaround)
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.001; // Very quiet
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.01);
+          } catch (e) {
+            console.log('Could not bring window to foreground:', e);
+          }
 
           // Set contextual title
           const titleEl = document.getElementById('edu-title');

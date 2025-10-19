@@ -487,6 +487,9 @@ class SelfVideoMonitor:
             print(f"Screenshot saved: {screenshot_path}")
             print(f"Detection confidence: {detection_result.get('max_confidence', 0):.2f}")
             
+            # Show native macOS notification (visible system-wide)
+            self._show_native_notification(alert_type, detection_result)
+            
             # Broadcast WebSocket alert from thread-safe helper
             message = {
                 "type": "detection",
@@ -506,6 +509,166 @@ class SelfVideoMonitor:
             
         except Exception as e:
             pass  # Silent error handling
+    
+    def _show_native_notification(self, alert_type, detection_result):
+        """Show native macOS notification and alert dialog that appears system-wide"""
+        try:
+            import subprocess
+            
+            confidence = detection_result.get('max_confidence', 0) * 100
+            
+            # Option 1: Show native notification (appears in notification center)
+            notification_script = f'''
+            display notification "Confidence: {confidence:.1f}%" with title "⚠️ Vaping/Smoking Detected" subtitle "{alert_type}" sound name "Glass"
+            '''
+            
+            subprocess.run(['osascript', '-e', notification_script], 
+                         capture_output=True, timeout=2)
+            
+            print(f"✅ Native macOS notification sent: {alert_type}")
+            
+            # Option 2: Show alert dialog with option to view educational content
+            # This appears as a modal dialog on top of all windows
+            # Educational video URL (same as configured in web frontend)
+            edu_video_url = "https://www.youtube.com/embed/oEGovehMaFs?autoplay=1&rel=0&modestbranding=1"
+            edu_video_watch_url = "https://www.youtube.com/watch?v=oEGovehMaFs"
+            
+            # Create JavaScript code for overlay (properly escaped)
+            # Use f-string to properly inject the video URL
+            js_code = f"""
+(function() {{
+    var existingOverlay = document.getElementById('vaping-detection-overlay');
+    if (existingOverlay) {{
+        existingOverlay.remove();
+    }}
+    
+    var overlay = document.createElement('div');
+    overlay.id = 'vaping-detection-overlay';
+    overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2147483647; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);';
+    
+    var modal = document.createElement('div');
+    modal.style.cssText = 'width: min(900px, 95vw); background: #1a1a1a; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);';
+    
+    var header = document.createElement('div');
+    header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #2a2a2a; border-bottom: 2px solid #ff4444;';
+    
+    var title = document.createElement('h3');
+    title.style.cssText = 'margin: 0; color: #fff; font-size: 18px; font-weight: bold;';
+    title.textContent = '⚠️ Health Education: Vaping & Smoking Risks';
+    header.appendChild(title);
+    
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕ Close';
+    closeBtn.style.cssText = 'background: #ff4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;';
+    
+    var removeOverlay = function() {{
+        overlay.remove();
+        document.removeEventListener('keydown', escHandler);
+    }};
+    
+    closeBtn.onclick = removeOverlay;
+    header.appendChild(closeBtn);
+    
+    var videoContainer = document.createElement('div');
+    videoContainer.style.cssText = 'aspect-ratio: 16/9; background: #000;';
+    
+    var iframe = document.createElement('iframe');
+    iframe.src = '{edu_video_url}';
+    iframe.style.cssText = 'width: 100%; height: 100%; border: 0;';
+    iframe.allow = 'autoplay; encrypted-media';
+    iframe.allowFullscreen = true;
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.setAttribute('frameborder', '0');
+    
+    // Add error handler and fallback link
+    var fallbackMsg = document.createElement('div');
+    fallbackMsg.style.cssText = 'display: none; padding: 40px; text-align: center; color: #fff;';
+    fallbackMsg.innerHTML = '<p style="margin-bottom: 20px;">Video embedding is restricted. Click below to watch:</p><a href="{edu_video_watch_url}" target="_blank" style="display: inline-block; background: #ff0000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Open Video in YouTube</a>';
+    
+    // Show fallback if iframe fails to load
+    iframe.onerror = function() {{
+        iframe.style.display = 'none';
+        fallbackMsg.style.display = 'block';
+    }};
+    
+    setTimeout(function() {{
+        try {{
+            if (!iframe.contentWindow || iframe.contentWindow.length === 0) {{
+                // Iframe might be blocked, show fallback
+                fallbackMsg.style.display = 'block';
+            }}
+        }} catch(e) {{
+            // Cross-origin restriction, assume it's working
+        }}
+    }}, 3000);
+    
+    videoContainer.appendChild(iframe);
+    videoContainer.appendChild(fallbackMsg);
+    modal.appendChild(header);
+    modal.appendChild(videoContainer);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    overlay.addEventListener('click', function(e) {{
+        if (e.target === overlay) removeOverlay();
+    }});
+    
+    var escHandler = function(e) {{
+        if (e.key === 'Escape') removeOverlay();
+    }};
+    document.addEventListener('keydown', escHandler);
+}})();
+"""
+            
+            # Escape the JavaScript for AppleScript (replace quotes and backslashes)
+            js_escaped = js_code.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+            
+            alert_dialog_script = f'''
+set userChoice to button returned of (display dialog "⚠️ {alert_type} content detected in Safari!\\n\\nConfidence: {confidence:.1f}%\\n\\nThis content may contain smoking or vaping imagery.\\n\\nWould you like to learn more about the health risks?" buttons {{"Learn More", "Dismiss"}} default button "Learn More" with title "Vaping/Smoking Detection Alert" with icon caution giving up after 15)
+
+if userChoice is "Learn More" then
+    tell application "Safari"
+        activate
+        -- Open educational video in a new window (works reliably)
+        make new document with properties {{URL:"{edu_video_watch_url}"}}
+        
+        -- Optional: Try to inject overlay in the newly created window
+        delay 0.5
+        try
+            tell front window
+                tell current tab
+                    do JavaScript "{js_escaped}"
+                end tell
+            end tell
+        on error
+            -- Overlay injection failed, but video is already open in new window
+        end try
+    end tell
+end if
+'''
+            
+            # Run dialog - use blocking mode to ensure it appears
+            print(f"🔔 Showing alert dialog for: {alert_type}")
+            print(f"📊 Confidence: {confidence:.1f}%")
+            
+            try:
+                result = subprocess.run(['osascript', '-e', alert_dialog_script], 
+                                       capture_output=True, 
+                                       timeout=20,
+                                       text=True)
+                
+                if result.returncode == 0:
+                    print(f"✅ Alert dialog completed successfully")
+                else:
+                    print(f"⚠️ Alert dialog error: {result.stderr}")
+                    
+            except subprocess.TimeoutExpired:
+                print(f"⏱️ Alert dialog timed out (user may have dismissed it)")
+            except Exception as e:
+                print(f"❌ Alert dialog failed: {e}")
+            
+        except Exception as e:
+            print(f"⚠️ Could not send native notification: {e}")
     
     def _handle_detection(self, detection_result, window_info, screenshot_path):
         """Handle positive smoking/vaping detection for self-monitoring"""
