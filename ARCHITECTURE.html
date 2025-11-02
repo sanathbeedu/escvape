@@ -1,0 +1,411 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 900px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            h1 {
+                color: #2c3e50;
+                border-bottom: 3px solid #3498db;
+                padding-bottom: 10px;
+                margin-top: 30px;
+            }
+            h2 {
+                color: #34495e;
+                border-bottom: 2px solid #95a5a6;
+                padding-bottom: 8px;
+                margin-top: 25px;
+            }
+            h3 {
+                color: #555;
+                margin-top: 20px;
+            }
+            h4 {
+                color: #666;
+                margin-top: 15px;
+            }
+            code {
+                background-color: #f4f4f4;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+                font-size: 0.9em;
+            }
+            pre {
+                background-color: #f8f8f8;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 15px;
+                overflow-x: auto;
+                line-height: 1.4;
+            }
+            pre code {
+                background-color: transparent;
+                padding: 0;
+            }
+            ul, ol {
+                margin-left: 20px;
+            }
+            li {
+                margin: 8px 0;
+            }
+            hr {
+                border: none;
+                border-top: 1px solid #ddd;
+                margin: 30px 0;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 20px 0;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 12px;
+                text-align: left;
+            }
+            th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+            }
+            blockquote {
+                border-left: 4px solid #3498db;
+                padding-left: 15px;
+                margin-left: 0;
+                color: #555;
+                font-style: italic;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Escvape System Architecture</h1>
+<h2>Overview</h2>
+<p><strong>Escvape</strong> is a comprehensive vaping and smoking detection system that combines AI-powered image/video analysis with parental control and tamper-detection features. The system uses a <strong>client-server architecture</strong> with multiple frontend interfaces connecting to a centralized FastAPI backend.</p>
+<hr />
+<h2>High-Level Architecture</h2>
+<div class="codehilite"><pre><span></span><code>┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Desktop GUI   │    │   Mobile App    │    │  Web Frontend   │
+│  (Python/Tkinter)│    │ (React Native)  │    │     (HTML)      │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+          │                      │                      │
+          └──────────────────────┼──────────────────────┘
+                                 │ REST API + WebSocket
+                    ┌─────────────┴─────────────┐
+                    │     FastAPI Backend       │
+                    │  ┌─────────────────────┐  │
+                    │  │  Detection Engine   │  │
+                    │  │    (YOLOv4/CV2)     │  │
+                    │  └─────────────────────┘  │
+                    │  ┌─────────────────────┐  │
+                    │  │ Parental Control    │  │
+                    │  │   Video Monitor     │  │
+                    │  └─────────────────────┘  │
+                    │  ┌─────────────────────┐  │
+                    │  │  App Protection     │  │
+                    │  │ Tamper Detection    │  │
+                    │  └─────────────────────┘  │
+                    └───────────────────────────┘
+                                 │
+                    ┌─────────────┴─────────────┐
+                    │     Local Storage         │
+                    │ ┌─────────┐ ┌─────────┐   │
+                    │ │SQLite DB│ │Model    │   │
+                    │ │Jobs/Stats│ │Files    │   │
+                    │ └─────────┘ └─────────┘   │
+                    └───────────────────────────┘
+</code></pre></div>
+
+<hr />
+<h2>Core Components</h2>
+<h3>1. Frontend Layer</h3>
+<h4>Desktop Client (<code>desktop_client.py</code>)</h4>
+<ul>
+<li><strong>Technology</strong>: Python with Tkinter GUI</li>
+<li><strong>Features</strong>:</li>
+<li>Image detection interface</li>
+<li>Parental control configuration</li>
+<li>Real-time monitoring controls</li>
+<li>Statistics dashboard</li>
+<li><strong>Communication</strong>: REST API calls to backend</li>
+</ul>
+<h4>Mobile App (<code>mobile-app/App.js</code>)</h4>
+<ul>
+<li><strong>Technology</strong>: React Native with Expo</li>
+<li><strong>Features</strong>:</li>
+<li>Camera integration for photo capture</li>
+<li>Gallery image selection</li>
+<li>Monitoring configuration</li>
+<li>Real-time alerts</li>
+<li><strong>Communication</strong>: REST API + WebSocket for live alerts</li>
+</ul>
+<h4>Web Frontend (<code>web_frontend.html</code>)</h4>
+<ul>
+<li><strong>Technology</strong>: HTML/CSS/JavaScript</li>
+<li><strong>Features</strong>:</li>
+<li>Browser-based detection interface</li>
+<li>Drag-and-drop image upload</li>
+<li>Real-time WebSocket alerts</li>
+<li><strong>Communication</strong>: REST API + WebSocket</li>
+</ul>
+<hr />
+<h3>2. Backend Layer (<code>api_server.py</code>)</h3>
+<h4>FastAPI Server</h4>
+<ul>
+<li><strong>Port</strong>: 8000</li>
+<li><strong>Key Features</strong>:</li>
+<li>RESTful API endpoints</li>
+<li>WebSocket support for real-time alerts</li>
+<li>CORS middleware for cross-origin requests</li>
+<li>Background task processing</li>
+<li>Static file serving</li>
+</ul>
+<h4>API Endpoints Structure:</h4>
+<div class="codehilite"><pre><span></span><code>/detect/*              - Detection endpoints
+/self-monitoring/*     - Parental control endpoints
+/protection/*          - App protection endpoints
+/ws/alerts            - WebSocket for real-time alerts
+/                     - Web frontend
+</code></pre></div>
+
+<hr />
+<h3>3. Detection Engine (<code>main.py</code>)</h3>
+<h4>SmokingVapingDetector Class</h4>
+<ul>
+<li><strong>Model</strong>: YOLOv4 (You Only Look Once v4)</li>
+<li><strong>Framework</strong>: OpenCV DNN module</li>
+<li><strong>Detection Targets</strong>:</li>
+<li>Traditional cigarettes</li>
+<li>Vaping devices (e-cigarettes, vape pens, mods, pods)</li>
+<li>Smoking-related objects</li>
+</ul>
+<p><strong>Detection Keywords</strong>:</p>
+<div class="codehilite"><pre><span></span><code><span class="p">[</span><span class="s1">&#39;cigarette&#39;</span><span class="p">,</span> <span class="s1">&#39;cigar&#39;</span><span class="p">,</span> <span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;tobacco&#39;</span><span class="p">,</span> <span class="s1">&#39;smoke&#39;</span><span class="p">,</span> 
+ <span class="s1">&#39;vape&#39;</span><span class="p">,</span> <span class="s1">&#39;vaping&#39;</span><span class="p">,</span> <span class="s1">&#39;e-cigarette&#39;</span><span class="p">,</span> <span class="s1">&#39;vaporizer&#39;</span><span class="p">,</span> 
+ <span class="s1">&#39;mod&#39;</span><span class="p">,</span> <span class="s1">&#39;pod&#39;</span><span class="p">,</span> <span class="s1">&#39;juul&#39;</span><span class="p">,</span> <span class="s1">&#39;puff&#39;</span><span class="p">,</span> <span class="s1">&#39;vapor&#39;</span><span class="p">]</span>
+</code></pre></div>
+
+<p><strong>Processing Flow</strong>:</p>
+<div class="codehilite"><pre><span></span><code>Image Input → Preprocessing → YOLOv4 Inference → 
+Post-processing → Confidence Filtering → Results
+</code></pre></div>
+
+<hr />
+<h3>4. Parental Control System (<code>parental_control_api.py</code>)</h3>
+<h4>Video Monitoring</h4>
+<ul>
+<li><strong>Screen Capture</strong>: Uses PIL ImageGrab for screenshots</li>
+<li><strong>Detection Frequency</strong>: Configurable interval (default: every few seconds)</li>
+<li><strong>Monitored Platforms</strong>: YouTube, TikTok, Instagram, Netflix, Safari</li>
+</ul>
+<h4>Features:</h4>
+<ul>
+<li><strong>Real-time alerts</strong>: WebSocket broadcasts on detection</li>
+<li><strong>Daily/Weekly reports</strong>: Email summaries (currently disabled)</li>
+<li><strong>Session tracking</strong>: SQLite database for monitoring sessions</li>
+<li><strong>Statistics</strong>: Video watch time, detection counts</li>
+</ul>
+<h4>Monitoring Thread:</h4>
+<div class="codehilite"><pre><span></span><code><span class="n">Screen</span> <span class="n">Capture</span> <span class="err">→</span> <span class="n">Detection</span> <span class="err">→</span> 
+<span class="n">Confidence</span> <span class="n">Check</span> <span class="err">→</span> <span class="n">Alert</span> <span class="n">Broadcast</span> <span class="err">→</span> 
+<span class="n">Database</span> <span class="n">Logging</span> <span class="err">→</span> <span class="n">Repeat</span>
+</code></pre></div>
+
+<hr />
+<h3>5. App Protection System (<code>app_protection.py</code>)</h3>
+<h4>Security Features:</h4>
+<ul>
+<li><strong>File Integrity Monitoring</strong>: SHA256 hashing of critical files</li>
+<li><strong>Heartbeat System</strong>: Regular status checks (5-minute intervals)</li>
+<li><strong>Deletion Detection</strong>: Monitors app directory existence</li>
+<li><strong>Tamper Alerts</strong>: Notifications on file modifications</li>
+</ul>
+<h4>Protected Files:</h4>
+<div class="codehilite"><pre><span></span><code><span class="p">[</span><span class="s1">&#39;main.py&#39;</span><span class="p">,</span> <span class="s1">&#39;api_server.py&#39;</span><span class="p">,</span> <span class="s1">&#39;parental_control_api.py&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;desktop_client.py&#39;</span><span class="p">,</span> <span class="s1">&#39;app_protection.py&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;models/yolov4.weights&#39;</span><span class="p">,</span> <span class="s1">&#39;models/yolov4.cfg&#39;</span><span class="p">]</span>
+</code></pre></div>
+
+<hr />
+<h3>6. Alert System (<code>alerts.py</code>)</h3>
+<h4>WebSocket Alert Manager</h4>
+<ul>
+<li><strong>Real-time Broadcasting</strong>: Pushes alerts to all connected clients</li>
+<li><strong>Thread-safe</strong>: Cross-thread event loop integration</li>
+<li><strong>Alert Types</strong>: Detection alerts, system status, tamper warnings</li>
+</ul>
+<hr />
+<h2>Data Layer</h2>
+<h3>SQLite Databases</h3>
+<h4>1. jobs.db - Batch Processing</h4>
+<div class="codehilite"><pre><span></span><code><span class="o">-</span><span class="w"> </span><span class="n">batch_jobs</span><span class="p">:</span><span class="w"> </span><span class="n">Job</span><span class="w"> </span><span class="n">metadata</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">status</span>
+<span class="o">-</span><span class="w"> </span><span class="n">job_results</span><span class="p">:</span><span class="w"> </span><span class="n">Individual</span><span class="w"> </span><span class="n">detection</span><span class="w"> </span><span class="n">results</span>
+</code></pre></div>
+
+<h4>2. monitoring.db - Parental Control</h4>
+<div class="codehilite"><pre><span></span><code><span class="o">-</span><span class="w"> </span><span class="n">monitoring_sessions</span><span class="p">:</span><span class="w"> </span><span class="n">Active</span><span class="o">/</span><span class="n">historical</span><span class="w"> </span><span class="n">sessions</span>
+<span class="o">-</span><span class="w"> </span><span class="n">video_detections</span><span class="p">:</span><span class="w"> </span><span class="n">Detection</span><span class="w"> </span><span class="n">events</span><span class="w"> </span><span class="k">with</span><span class="w"> </span><span class="n">timestamps</span>
+<span class="o">-</span><span class="w"> </span><span class="n">daily_stats</span><span class="p">:</span><span class="w"> </span><span class="n">Aggregated</span><span class="w"> </span><span class="k">statistics</span>
+</code></pre></div>
+
+<h4>3. protection.db - App Security</h4>
+<div class="codehilite"><pre><span></span><code><span class="o">-</span><span class="w"> </span><span class="n">app_status</span><span class="p">:</span><span class="w"> </span><span class="n">Heartbeat</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">protection</span><span class="w"> </span><span class="n">status</span>
+<span class="o">-</span><span class="w"> </span><span class="n">deletion_alerts</span><span class="p">:</span><span class="w"> </span><span class="n">Tampering</span><span class="w"> </span><span class="n">events</span>
+<span class="o">-</span><span class="w"> </span><span class="n">file_integrity</span><span class="p">:</span><span class="w"> </span><span class="n">Hash</span><span class="w"> </span><span class="n">checksums</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">critical</span><span class="w"> </span><span class="n">files</span>
+</code></pre></div>
+
+<hr />
+<h2>Communication Protocols</h2>
+<h3>REST API</h3>
+<ul>
+<li><strong>Format</strong>: JSON</li>
+<li><strong>Authentication</strong>: None (local deployment)</li>
+<li><strong>Endpoints</strong>: ~15 endpoints across detection, monitoring, and protection</li>
+</ul>
+<h3>WebSocket</h3>
+<ul>
+<li><strong>Protocol</strong>: WS (ws://localhost:8000/ws/alerts)</li>
+<li><strong>Purpose</strong>: Real-time alert broadcasting</li>
+<li><strong>Message Format</strong>: JSON with detection metadata</li>
+</ul>
+<hr />
+<h2>Deployment Model</h2>
+<h3>Local Deployment</h3>
+<ul>
+<li><strong>Backend</strong>: Runs on localhost:8000</li>
+<li><strong>Storage</strong>: Local SQLite databases</li>
+<li><strong>Processing</strong>: On-device AI inference</li>
+<li><strong>Privacy</strong>: No cloud uploads, all data stays local</li>
+</ul>
+<h3>Cross-Platform Support</h3>
+<ul>
+<li><strong>Desktop</strong>: Windows, macOS, Linux</li>
+<li><strong>Mobile</strong>: iOS, Android (via React Native)</li>
+<li><strong>Web</strong>: Any modern browser</li>
+</ul>
+<hr />
+<h2>Key Design Patterns</h2>
+<ol>
+<li><strong>Modular Architecture</strong>: Separate modules for detection, monitoring, and protection</li>
+<li><strong>Background Processing</strong>: Async tasks for long-running operations</li>
+<li><strong>Event-Driven Alerts</strong>: WebSocket-based real-time notifications</li>
+<li><strong>Database Persistence</strong>: SQLite for all state management</li>
+<li><strong>Thread Safety</strong>: Proper synchronization for concurrent operations</li>
+</ol>
+<hr />
+<h2>Security &amp; Privacy</h2>
+<ul>
+<li>✅ <strong>Local Processing</strong>: All AI inference happens on-device</li>
+<li>✅ <strong>No Cloud Storage</strong>: Images never leave the device</li>
+<li>✅ <strong>File Integrity</strong>: SHA256 checksums for tamper detection</li>
+<li>✅ <strong>Encrypted Storage</strong>: SQLite databases with integrity checks</li>
+<li>✅ <strong>GDPR Compliant</strong>: No external data transmission</li>
+</ul>
+<hr />
+<h2>Component Interactions</h2>
+<h3>Image Detection Flow</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">User</span><span class="w"> </span><span class="n">Upload</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">API</span><span class="w"> </span><span class="n">Server</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Detection</span><span class="w"> </span><span class="n">Engine</span><span class="w"> </span><span class="err">→</span><span class="w"> </span>
+<span class="n">YOLOv4</span><span class="w"> </span><span class="n">Processing</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Results</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Database</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Response</span>
+</code></pre></div>
+
+<h3>Video Monitoring Flow</h3>
+<div class="codehilite"><pre><span></span><code>Start Monitoring → Background Thread → Screen Capture → 
+Detection Engine → Confidence Check → Alert Broadcast → 
+Database Logging → Repeat
+</code></pre></div>
+
+<h3>App Protection Flow</h3>
+<div class="codehilite"><pre><span></span><code>Enable Protection → Calculate File Hashes → 
+Heartbeat Thread → Periodic Checks → 
+Detect Changes → Alert Parent → Log Event
+</code></pre></div>
+
+<hr />
+<h2>File Structure</h2>
+<div class="codehilite"><pre><span></span><code><span class="nx">escvape</span><span class="o">/</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">main</span><span class="p">.</span><span class="nx">py</span><span class="w">                    </span><span class="err">#</span><span class="w"> </span><span class="nx">Detection</span><span class="w"> </span><span class="nx">engine</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">api_server</span><span class="p">.</span><span class="nx">py</span><span class="w">              </span><span class="err">#</span><span class="w"> </span><span class="nx">FastAPI</span><span class="w"> </span><span class="nx">backend</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">parental_control_api</span><span class="p">.</span><span class="nx">py</span><span class="w">    </span><span class="err">#</span><span class="w"> </span><span class="nx">Monitoring</span><span class="w"> </span><span class="nx">system</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">app_protection</span><span class="p">.</span><span class="nx">py</span><span class="w">          </span><span class="err">#</span><span class="w"> </span><span class="nx">Security</span><span class="w"> </span><span class="nx">system</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">alerts</span><span class="p">.</span><span class="nx">py</span><span class="w">                  </span><span class="err">#</span><span class="w"> </span><span class="nx">Alert</span><span class="w"> </span><span class="nx">manager</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">desktop_client</span><span class="p">.</span><span class="nx">py</span><span class="w">          </span><span class="err">#</span><span class="w"> </span><span class="nx">Desktop</span><span class="w"> </span><span class="nx">GUI</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">web_frontend</span><span class="p">.</span><span class="nx">html</span><span class="w">          </span><span class="err">#</span><span class="w"> </span><span class="nx">Web</span><span class="w"> </span><span class="kd">interface</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">mobile</span><span class="o">-</span><span class="nx">app</span><span class="o">/</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="nx">App</span><span class="p">.</span><span class="nx">js</span><span class="w">                 </span><span class="err">#</span><span class="w"> </span><span class="nx">React</span><span class="w"> </span><span class="nx">Native</span><span class="w"> </span><span class="nx">app</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="kn">package</span><span class="p">.</span><span class="nx">json</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">models</span><span class="o">/</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="nx">yolov4</span><span class="p">.</span><span class="nx">weights</span><span class="w">         </span><span class="err">#</span><span class="w"> </span><span class="nx">AI</span><span class="w"> </span><span class="nx">model</span><span class="w"> </span><span class="nx">weights</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="nx">yolov4</span><span class="p">.</span><span class="nx">cfg</span><span class="w">             </span><span class="err">#</span><span class="w"> </span><span class="nx">Model</span><span class="w"> </span><span class="nx">configuration</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="nx">coco</span><span class="p">.</span><span class="nx">names</span><span class="w">             </span><span class="err">#</span><span class="w"> </span><span class="nx">Class</span><span class="w"> </span><span class="nx">labels</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">jobs</span><span class="p">.</span><span class="nx">db</span><span class="w">                    </span><span class="err">#</span><span class="w"> </span><span class="nx">Batch</span><span class="w"> </span><span class="nx">processing</span><span class="w"> </span><span class="nx">DB</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">monitoring</span><span class="p">.</span><span class="nx">db</span><span class="w">              </span><span class="err">#</span><span class="w"> </span><span class="nx">Monitoring</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="nx">DB</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">protection</span><span class="p">.</span><span class="nx">db</span><span class="w">              </span><span class="err">#</span><span class="w"> </span><span class="nx">Security</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="nx">DB</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">requirements</span><span class="p">.</span><span class="nx">txt</span><span class="w">           </span><span class="err">#</span><span class="w"> </span><span class="nx">Python</span><span class="w"> </span><span class="nx">dependencies</span>
+<span class="err">└──</span><span class="w"> </span><span class="nx">README</span><span class="p">.</span><span class="nx">md</span><span class="w">                  </span><span class="err">#</span><span class="w"> </span><span class="nx">Documentation</span>
+</code></pre></div>
+
+<hr />
+<h2>Technology Stack</h2>
+<h3>Backend</h3>
+<ul>
+<li><strong>Python 3.x</strong>: Core language</li>
+<li><strong>FastAPI</strong>: Web framework</li>
+<li><strong>OpenCV</strong>: Computer vision</li>
+<li><strong>YOLOv4</strong>: Object detection</li>
+<li><strong>SQLite</strong>: Database</li>
+<li><strong>WebSockets</strong>: Real-time communication</li>
+</ul>
+<h3>Frontend</h3>
+<ul>
+<li><strong>Tkinter</strong>: Desktop GUI (Python)</li>
+<li><strong>React Native</strong>: Mobile app</li>
+<li><strong>Expo</strong>: Mobile development platform</li>
+<li><strong>HTML/CSS/JS</strong>: Web interface</li>
+</ul>
+<h3>AI/ML</h3>
+<ul>
+<li><strong>YOLOv4</strong>: Deep learning model</li>
+<li><strong>COCO Dataset</strong>: Pre-trained weights</li>
+<li><strong>OpenCV DNN</strong>: Inference engine</li>
+</ul>
+<hr />
+<h2>Performance Characteristics</h2>
+<h3>Detection Speed</h3>
+<ul>
+<li><strong>Image Analysis</strong>: ~1-3 seconds per image</li>
+<li><strong>Video Monitoring</strong>: Real-time (configurable interval)</li>
+<li><strong>Batch Processing</strong>: Parallel processing supported</li>
+</ul>
+<h3>Resource Usage</h3>
+<ul>
+<li><strong>Model Size</strong>: ~245MB (YOLOv4 weights)</li>
+<li><strong>Memory</strong>: ~500MB-1GB during inference</li>
+<li><strong>CPU</strong>: Optimized for CPU inference</li>
+<li><strong>GPU</strong>: Optional CUDA support</li>
+</ul>
+<hr />
+<h2>Future Enhancements</h2>
+<ol>
+<li><strong>Cloud Sync</strong>: Optional cloud backup for reports</li>
+<li><strong>Advanced Analytics</strong>: ML-based trend analysis</li>
+<li><strong>Multi-device Support</strong>: Centralized parent dashboard</li>
+<li><strong>Enhanced Detection</strong>: Custom-trained models for vaping devices</li>
+<li><strong>Mobile Optimization</strong>: On-device ML inference for mobile</li>
+</ol>
+<hr />
+<p><strong>Document Version</strong>: 1.0<br />
+<strong>Last Updated</strong>: October 25, 2025<br />
+<strong>System Version</strong>: 1.0.0</p>
+    </body>
+    </html>
+    
