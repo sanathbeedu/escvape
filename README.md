@@ -181,7 +181,12 @@ cd dist
 zip -r EscVapeDetector.zip EscVapeDetector.app
 ```
 
-Upload `EscVapeDetector.zip` to a GitHub Release or any public file host so end users can download it.
+### Download from GitHub Releases (Recommended)
+
+Instead of building from source, end users can download a prebuilt macOS app from the
+[GitHub Releases](https://github.com/sanathbeedu/escvape/releases) page. Download the
+latest `EscVapeDetector.zip`, unzip it, and follow the steps below to run the unsigned app
+on macOS.
 
 ### Running the Unsigned App on macOS
 
