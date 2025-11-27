@@ -25,7 +25,14 @@ import time
 from main import SmokingVapingDetector
 
 # Import self-monitoring API
-from parental_control_api import router as self_monitoring_router
+from parental_control_api import (
+    router as self_monitoring_router,
+    StartMonitoringRequest,
+    MonitoringStats,
+    start_monitoring as self_start_monitoring,
+    stop_monitoring as self_stop_monitoring,
+    get_monitoring_stats as self_get_monitoring_stats,
+)
 
 # Import app protection system
 from app_protection import AppProtectionSystem
@@ -60,6 +67,24 @@ app.add_middleware(
 
 # Include self-monitoring router
 app.include_router(self_monitoring_router)
+
+# Backward-compatible parental control endpoints
+@app.post("/parental-control/start-monitoring")
+async def parental_start_monitoring(request: StartMonitoringRequest):
+    """Backward-compatible alias for self-monitoring start endpoint."""
+    return await self_start_monitoring(request)
+
+
+@app.post("/parental-control/stop-monitoring")
+async def parental_stop_monitoring(device_id: str = "desktop_device_001"):
+    """Backward-compatible alias for self-monitoring stop endpoint."""
+    return await self_stop_monitoring(device_id)
+
+
+@app.get("/parental-control/stats", response_model=MonitoringStats)
+async def parental_get_stats(device_id: str = "desktop_device_001"):
+    """Backward-compatible alias for self-monitoring stats endpoint."""
+    return await self_get_monitoring_stats(device_id)
 
 # WebSocket endpoint for real-time alerts
 @app.websocket("/ws/alerts")
@@ -566,4 +591,5 @@ async def process_apple_photos_job(job_id: str, confidence_threshold: float, lim
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Disable HTTP access logs to avoid noisy per-request INFO lines
+    uvicorn.run(app, host="127.0.0.1", port=8000, access_log=False)

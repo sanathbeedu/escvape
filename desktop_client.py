@@ -408,10 +408,7 @@ class CigaretteDetectionGUI:
         parent_email = self.parent_email_var.get().strip()
         device_id = self.device_id_var.get().strip()
         
-        if not parent_email:
-            messagebox.showerror("Error", "Please enter parent email")
-            return
-        
+        # Parent email is optional for starting monitoring; device ID is required
         if not device_id:
             messagebox.showerror("Error", "Please enter device ID")
             return
@@ -419,7 +416,6 @@ class CigaretteDetectionGUI:
         def start():
             try:
                 data = {
-                    "parentEmail": parent_email,
                     "deviceId": device_id,
                     "settings": {
                         "realTimeAlerts": self.realtime_alerts_var.get(),
@@ -429,6 +425,10 @@ class CigaretteDetectionGUI:
                         "monitoredApps": ["youtube", "tiktok", "instagram", "netflix"]
                     }
                 }
+
+                # Include parent email only if provided (optional for monitoring)
+                if parent_email:
+                    data["parentEmail"] = parent_email
                 
                 response = requests.post(
                     f"{self.api_base_url}/parental-control/start-monitoring",

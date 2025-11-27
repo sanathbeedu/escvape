@@ -24,7 +24,29 @@ import psutil
 
 class AppProtectionSystem:
     def __init__(self, app_directory=None, parent_email=None):
-        self.app_directory = app_directory or os.path.dirname(os.path.abspath(__file__))
+        # Determine base application directory
+        if app_directory is not None:
+            base_dir = app_directory
+        else:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # When frozen (py2app/pyinstaller), write protection data to a
+        # user-writable directory instead of the app bundle.
+        if getattr(sys, "frozen", False):
+            user_base = os.path.join(
+                os.path.expanduser("~"),
+                "Library",
+                "Application Support",
+                "EscVapeDetector",
+            )
+            try:
+                os.makedirs(user_base, exist_ok=True)
+                self.app_directory = user_base
+            except Exception:
+                # Fallback to base_dir if user directory cannot be created
+                self.app_directory = base_dir
+        else:
+            self.app_directory = base_dir
         self.parent_email = parent_email
         self.protection_db = os.path.join(self.app_directory, "protection.db")
         self.heartbeat_interval = 300  # 5 minutes
@@ -46,6 +68,12 @@ class AppProtectionSystem:
         
     def init_protection_db(self):
         """Initialize protection database"""
+        # Ensure directory for the database exists
+        try:
+            os.makedirs(os.path.dirname(self.protection_db), exist_ok=True)
+        except Exception:
+            pass
+
         conn = sqlite3.connect(self.protection_db)
         cursor = conn.cursor()
         

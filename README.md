@@ -111,11 +111,11 @@ npx expo start
    - View detailed results and detection confidence
 
 2. **Parental Control Tab**:
-   - Enter parent email and device ID
+   - Enter device ID (required) and parent email (optional for monitoring, required for email alerts/reports and app protection)
    - Configure monitoring settings (alerts, reports, sensitivity)
    - Start/stop video monitoring for smoking using vaping devices and cigarettes
-   - Enable app protection with tamper detection
-   - Send test reports to verify email notifications
+   - Enable app protection with tamper detection (requires parent email)
+   - Send test reports to verify email notifications (requires parent email)
 ### Mobile Application
 
 1. **Detection Screen**:
@@ -145,6 +145,59 @@ python main.py --batch path/to/images/ --output results/
 # Analyze Apple Photos
 python main.py --apple-photos --limit 50 --output results/
 ```
+
+## 🍏 macOS App Bundle (Experimental)
+
+You can build a standalone macOS `.app` that bundles the FastAPI backend and launches the browser-based web UI using **py2app** and distribute it via a public GitHub release.
+
+### Build the macOS App (on a Mac)
+
+```bash
+# 1. Create and activate virtual environment (optional but recommended)
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Download YOLOv4 model files (if not already done)
+python setup_models.py
+
+# 4. Install py2app (build tool)
+pip install py2app
+
+# 5. Build the .app bundle using setup.py
+python setup.py py2app
+```
+
+After building, the macOS app will be located at:
+
+- `dist/EscVapeDetector.app`
+
+You can compress it for distribution:
+
+```bash
+cd dist
+zip -r EscVapeDetector.zip EscVapeDetector.app
+```
+
+Upload `EscVapeDetector.zip` to a GitHub Release or any public file host so end users can download it.
+
+### Running the Unsigned App on macOS
+
+Because the app is not signed or notarized with an Apple Developer ID, macOS will initially block it.
+
+End users should:
+
+1. Download and unzip `EscVapeDetector.zip`.
+2. Move `EscVapeDetector.app` to the `Applications` folder (optional but recommended).
+3. First launch:
+   - Double-click the app. macOS will likely show a warning about an unidentified developer.
+   - Open **System Settings → Privacy & Security**.
+   - In the **Security** section, click **"Open Anyway"** for `EscVapeDetector`.
+   - Confirm in the dialog.
+
+After this first approval, macOS usually allows the app to launch normally on subsequent runs.
 
 ## 🔧 Configuration
 
@@ -179,6 +232,32 @@ export NOTIFICATION_PASSWORD="your-app-password"
 - **No Cloud Storage**: Images and videos never leave the device
 - **Encrypted Storage**: SQLite databases with integrity checks
 - **GDPR Compliant**: No personal data sent to external servers
+
+## 🔒 Security & Privacy
+
+This app is designed for local, on-device monitoring, but it has powerful access that you should understand before using or distributing it.
+
+### What the App Can Access
+- **Local Images & Folders**: Any images you select for analysis, including Apple Photos (when you enable that feature). macOS will request appropriate permissions.
+- **Screen Content (Self-Monitoring)**: When self/parental monitoring is enabled, the app can capture parts of the screen for analysis, specifically Safari when it is frontmost and on YouTube. macOS will require **Screen Recording** permission.
+- **App & File Integrity (Protection)**: The App Protection system monitors certain files and processes on the device to detect tampering or removal.
+
+### What Data Is Stored
+- **Detection Results**: Stored in local SQLite databases (`jobs.db`, `monitoring.db`, `protection.db`), including filenames, detection timestamps, and confidence scores.
+- **Monitoring Sessions**: Device IDs, parent emails, and high-level monitoring statistics.
+- **Protection State**: Whether protection is enabled for a device and any tamper alerts.
+
+All of this data remains **on the local machine**. There is no built-in cloud upload of images or databases.
+
+### Email & Notifications
+- Email alerts use credentials provided via environment variables (e.g. `NOTIFICATION_EMAIL`, `NOTIFICATION_PASSWORD`).
+- For safety, always use **app-specific passwords** where possible (e.g. Gmail App Passwords) and never commit credentials into source control.
+
+### Recommended Safe Practices
+- **Explain Monitoring**: Inform users (especially children) that monitoring is enabled and what it does. Ensure compliance with local laws.
+- **Limit Network Exposure**: Run the bundled app (which uses `127.0.0.1`) or otherwise avoid exposing the API server publicly on the network.
+- **Protect the Device**: Use OS-level security such as macOS user accounts and FileVault to protect local databases.
+- **Review Permissions**: Periodically review macOS Privacy & Security settings (Screen Recording, Files & Folders, Photos) to ensure they match your intent.
 
 ## 📊 Database Schema
 

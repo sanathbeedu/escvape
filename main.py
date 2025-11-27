@@ -18,10 +18,32 @@ from datetime import datetime
 
 class SmokingVapingDetector:
     def __init__(self, model_dir="models"):
-        self.model_dir = model_dir
-        self.config_path = os.path.join(model_dir, "yolov4.cfg")
-        self.weights_path = os.path.join(model_dir, "yolov4.weights")
-        self.classes_path = os.path.join(model_dir, "coco.names")
+        # Resolve model directory for normal runs, PyInstaller, and py2app bundles
+        if not os.path.isabs(model_dir):
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+
+            # When frozen by PyInstaller, models are under sys._MEIPASS/models
+            if hasattr(sys, "_MEIPASS"):
+                base_dir = getattr(sys, "_MEIPASS")
+                self.model_dir = os.path.join(base_dir, model_dir)
+
+            # When frozen by py2app, run_app.py and resources live in the
+            # app bundle; data_files like "models" are placed in Resources/models.
+            elif getattr(sys, "frozen", False):
+                # sys.argv[0] points to Contents/MacOS/<AppName>
+                app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+                resources_dir = os.path.join(app_dir, "..", "Resources")
+                self.model_dir = os.path.join(os.path.abspath(resources_dir), model_dir)
+
+            else:
+                # Normal source run: models/ relative to this file
+                self.model_dir = os.path.join(base_dir, model_dir)
+        else:
+            self.model_dir = model_dir
+        
+        self.config_path = os.path.join(self.model_dir, "yolov4.cfg")
+        self.weights_path = os.path.join(self.model_dir, "yolov4.weights")
+        self.classes_path = os.path.join(self.model_dir, "coco.names")
         
         self.net = None
         self.classes = []

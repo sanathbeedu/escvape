@@ -223,25 +223,34 @@ function ParentalControlScreen() {
   };
 
   const startMonitoring = async () => {
-    if (!parentEmail.trim()) {
-      Alert.alert('Error', 'Please enter parent email');
-      return;
-    }
-
     try {
+      const trimmedDeviceId = deviceId.trim();
+      const trimmedEmail = parentEmail.trim();
+
+      if (!trimmedDeviceId) {
+        Alert.alert('Error', 'Please enter device ID');
+        return;
+      }
+
+      const body = {
+        deviceId: trimmedDeviceId,
+        settings: {
+          ...settings,
+          monitoredApps: ['youtube', 'tiktok', 'instagram', 'netflix'],
+        },
+      };
+
+      // Include parentEmail only if provided (optional for starting monitoring)
+      if (trimmedEmail) {
+        body.parentEmail = trimmedEmail;
+      }
+
       const response = await fetch(`${API_BASE_URL}/parental-control/start-monitoring`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          parentEmail: parentEmail.trim(),
-          deviceId: deviceId.trim(),
-          settings: {
-            ...settings,
-            monitoredApps: ['youtube', 'tiktok', 'instagram', 'netflix'],
-          },
-        }),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
