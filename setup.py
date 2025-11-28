@@ -11,11 +11,18 @@ OPTIONS = {
     "packages": [
         "fastapi",
         "uvicorn",
+        "starlette",
+        "anyio",
+        "sniffio",
         "PIL",
         "numpy",
         "requests",
         "psutil",
         "charset_normalizer",
+    ],
+    # Ensure AnyIO's asyncio backend is included for FastAPI/Uvicorn
+    "includes": [
+        "anyio._backends._asyncio",
     ],
     # Do not bundle build tooling packages; they are not needed at runtime
     # and can cause duplicate dist-info errors during collection.
